@@ -1,6 +1,9 @@
+import { loadEnvConfig } from "@next/env";
 import { neon } from "@neondatabase/serverless";
 import bcrypt from "bcryptjs";
 import { golfLinks, readSeedConfig } from "./seed-config";
+
+loadEnvConfig(process.cwd());
 
 const config = readSeedConfig(process.env);
 const sql = neon(config.databaseUrl);

@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "verify:db": "tsx scripts/verify-db.ts",
     "seed:golf": "tsx scripts/seed-golf.ts"
   },
   "dependencies": {
