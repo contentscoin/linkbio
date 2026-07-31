@@ -39,7 +39,12 @@ Useful scripts:
 - `npm run db:generate`
 - `npm run db:push`
 - `npm run db:studio`
+- `npm run verify:db`
 - `npm run seed:golf`
+
+Vercel deployments run `db:push`, `verify:db`, and then `build`. The smoke test
+creates temporary rows, checks uniqueness, ownership isolation, publish gating,
+and removes the temporary rows before the build continues.
 
 The seed requires:
 
