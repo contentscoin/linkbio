@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LinkBio
+
+LinkBio is a small, separate link-in-bio app backed by Postgres. It includes
+signup/login, a private admin editor, public `/{handle}` pages, Drizzle schema
+management, and an optional golf profile seed.
 
 ## Getting Started
 
-First, run the development server:
+Create a local environment file:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```powershell
+Copy-Item .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Fill in:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `DATABASE_URL`: Neon or another Postgres connection string.
+- `SESSION_SECRET`: at least 32 random characters.
+- `NEXT_PUBLIC_SITE_URL`: `http://localhost:3000` for local development.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Generate a session secret with Node:
 
-## Learn More
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
 
-To learn more about Next.js, take a look at the following resources:
+Run the schema and app:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run db:push
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Useful scripts:
 
-## Deploy on Vercel
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `npm run db:generate`
+- `npm run db:push`
+- `npm run db:studio`
+- `npm run seed:golf`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The seed requires:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```powershell
+$env:DATABASE_URL="postgresql://..."
+$env:SEED_EMAIL="you@example.com"
+$env:SEED_PASSWORD="10-character-minimum"
+$env:SEED_HANDLE="bolbanjang"
+npm run seed:golf
+```
+
+Security notes:
+
+- Passwords are hashed with bcrypt cost 12.
+- Sessions are HS256 JWTs in HttpOnly, SameSite=Lax cookies. Production cookies are Secure.
+- Server Actions re-check authentication and ownership for mutations.
+- Link URLs allow only `http` and `https`.
+- Rate limiting is currently in-memory. Move it to Upstash Redis or Vercel KV before real traffic.
