@@ -1,19 +1,24 @@
 #!/usr/bin/env node
 /**
- * LinkBio MCP server — query, organize, update pages & design via HTTP agent API.
+ * LinkBio MCP server (stdio) — proxies to /api/v1/agent
  *
  * Env:
  *   LINKBIO_BASE_URL  e.g. http://localhost:3000
  *   MCP_API_KEY       same key as Next.js MCP_API_KEY
  */
 
-const baseUrl = (process.env.LINKBIO_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
-const apiKey = process.env.MCP_API_KEY || "";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 
-function send(msg) {
-  const body = JSON.stringify(msg);
-  process.stdout.write(`Content-Length: ${Buffer.byteLength(body, "utf8")}\r\n\r\n${body}`);
-}
+const baseUrl = (process.env.LINKBIO_BASE_URL || "http://localhost:3000").replace(
+  /\/$/,
+  "",
+);
+const apiKey = process.env.MCP_API_KEY || "";
 
 async function agentFetch(method, query, body) {
   const url = new URL(`${baseUrl}/api/v1/agent`);
@@ -55,7 +60,8 @@ const tools = [
   },
   {
     name: "apply_template",
-    description: "Apply a named template (field, studio, coral, dusk, fairway, ink, meadow, tournament).",
+    description:
+      "Apply a named template (field, studio, coral, dusk, fairway, ink, meadow, tournament).",
     inputSchema: {
       type: "object",
       properties: {
@@ -69,7 +75,7 @@ const tools = [
   {
     name: "update_design",
     description:
-      "Patch page design: accentColor, backgroundKind/Value, buttonStyle, fontPair, layout, customCss for personalization.",
+      "Patch page design: accentColor, backgroundKind/Value, buttonStyle, fontPair, layout, customCss.",
     inputSchema: {
       type: "object",
       properties: {
@@ -142,7 +148,7 @@ const tools = [
   },
 ];
 
-async function callTool(name, args) {
+async function callTool(name, args = {}) {
   switch (name) {
     case "list_templates":
       return agentFetch("GET", { action: "templates" });
@@ -181,97 +187,31 @@ async function callTool(name, args) {
   }
 }
 
-let buffer = Buffer.alloc(0);
+const server = new Server(
+  { name: "linkbio", version: "0.2.0" },
+  { capabilities: { tools: {} } },
+);
 
-process.stdin.on("data", (chunk) => {
-  buffer = Buffer.concat([buffer, chunk]);
-  while (true) {
-    const headerEnd = buffer.indexOf("\r\n\r\n");
-    if (headerEnd === -1) break;
-    const header = buffer.slice(0, headerEnd).toString("utf8");
-    const match = header.match(/Content-Length:\s*(\d+)/i);
-    if (!match) {
-      buffer = buffer.slice(headerEnd + 4);
-      continue;
-    }
-    const length = Number(match[1]);
-    const total = headerEnd + 4 + length;
-    if (buffer.length < total) break;
-    const raw = buffer.slice(headerEnd + 4, total).toString("utf8");
-    buffer = buffer.slice(total);
+server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
 
-    let message;
-    try {
-      message = JSON.parse(raw);
-    } catch {
-      continue;
-    }
-
-    void (async () => {
-      if (message.method === "initialize") {
-        send({
-          jsonrpc: "2.0",
-          id: message.id,
-          result: {
-            protocolVersion: "2024-11-05",
-            capabilities: { tools: {} },
-            serverInfo: { name: "linkbio", version: "0.2.0" },
-          },
-        });
-        return;
-      }
-
-      if (message.method === "notifications/initialized") return;
-
-      if (message.method === "tools/list") {
-        send({
-          jsonrpc: "2.0",
-          id: message.id,
-          result: { tools },
-        });
-        return;
-      }
-
-      if (message.method === "tools/call") {
-        try {
-          const result = await callTool(
-            message.params.name,
-            message.params.arguments || {},
-          );
-          send({
-            jsonrpc: "2.0",
-            id: message.id,
-            result: {
-              content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-            },
-          });
-        } catch (error) {
-          send({
-            jsonrpc: "2.0",
-            id: message.id,
-            result: {
-              isError: true,
-              content: [
-                {
-                  type: "text",
-                  text: error instanceof Error ? error.message : String(error),
-                },
-              ],
-            },
-          });
-        }
-        return;
-      }
-
-      if (message.id != null) {
-        send({
-          jsonrpc: "2.0",
-          id: message.id,
-          error: { code: -32601, message: `Method not found: ${message.method}` },
-        });
-      }
-    })();
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  try {
+    const result = await callTool(request.params.name, request.params.arguments || {});
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  } catch (error) {
+    return {
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
+    };
   }
 });
 
-process.stdin.resume();
+const transport = new StdioServerTransport();
+await server.connect(transport);

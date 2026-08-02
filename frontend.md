@@ -7,7 +7,8 @@
 - [x] Admin templates (8) + decorate (background / fonts / CSS)
 - [x] SNS channel OG import UI
 - [x] Landing hero (brand-first LinkBio)
-- [x] MCP agent API + stdio bridge
+- [x] MCP agent API + stdio bridge (`type: stdio`, SDK)
 - [x] Admin live preview dock
 - [x] Optional Upstash rate limit (env-gated)
-- [ ] Visual QA on real Neon seed publish (needs `.env.local`)
+- [x] README / MCP 문서 한글 상세화
+- [x] Visual QA on Neon (`bolbanjang` seed, public 200, MCP templates/page OK)
