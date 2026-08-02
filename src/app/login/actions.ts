@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { redirectWithMessage } from "@/lib/messages";
-import { checkRateLimit } from "@/lib/ratelimit";
+import { enforceRateLimit } from "@/lib/ratelimit";
 import { getClientIp } from "@/lib/request";
 import { createSession, deleteSession } from "@/lib/session";
 import { validateEmail } from "@/lib/validation";
@@ -20,7 +20,7 @@ function fail(message: string): never {
 
 export async function loginAction(formData: FormData) {
   const ip = await getClientIp();
-  if (!checkRateLimit(`login:${ip}`, 20, authWindowMs)) {
+  if (!(await enforceRateLimit(`login:${ip}`, 20, authWindowMs))) {
     fail("Too many login attempts. Try again later.");
   }
 

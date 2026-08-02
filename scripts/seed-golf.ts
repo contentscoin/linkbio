@@ -23,7 +23,10 @@ async function main() {
   }
 
   const pageRows = (await sql`
-  insert into pages (user_id, handle, display_name, bio, avatar_initials, theme, is_published)
+  insert into pages (
+    user_id, handle, display_name, bio, avatar_initials, theme,
+    contact_email, show_share, show_contact, design, is_published
+  )
   values (
     ${user.id},
     ${config.handle},
@@ -31,6 +34,21 @@ async function main() {
     'Lesson packages, custom balls, and team printing links in one place.',
     'GL',
     'field',
+    ${config.email},
+    true,
+    true,
+    ${JSON.stringify({
+      buttonStyle: "solid",
+      backgroundKind: "gradient",
+      backgroundValue:
+        "radial-gradient(circle at 12% 0%, rgba(230, 184, 76, 0.28), transparent 42%), linear-gradient(165deg, #e8f0ea 0%, #f3f7f2 48%, #dfe9e2 100%)",
+      accentColor: "#1a5c45",
+      textColor: "#14241c",
+      mutedColor: "#5b6d63",
+      fontPair: "editorial",
+      layout: "stack",
+      customCss: "",
+    })},
     true
   )
   on conflict (user_id) do update set
@@ -39,6 +57,10 @@ async function main() {
     bio = excluded.bio,
     avatar_initials = excluded.avatar_initials,
     theme = excluded.theme,
+    contact_email = excluded.contact_email,
+    show_share = excluded.show_share,
+    show_contact = excluded.show_contact,
+    design = excluded.design,
     is_published = excluded.is_published,
     updated_at = now()
   returning id

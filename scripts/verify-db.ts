@@ -56,6 +56,27 @@ async function main() {
     returning id
   `) as Array<{ id: string }>;
 
+    await sql`
+    insert into social_channels (page_id, platform, handle, url, title, description, image_url, site_name)
+    values (
+      ${pageA.id},
+      'website',
+      'example',
+      ${`https://example.com/${marker}`},
+      'Example Channel',
+      'verification social row',
+      '',
+      'example.com'
+    )
+  `;
+
+    const socialRows = await sql`
+    select id from social_channels where page_id = ${pageA.id} limit 1
+  `;
+    if (socialRows.length !== 1) {
+      throw new Error("Social channel insert failed.");
+    }
+
     const crossTenantRows = await sql`
     select links.id
     from links
@@ -99,7 +120,9 @@ async function main() {
       throw new Error("Cleanup failed.");
     }
 
-    console.log("DB_VERIFY_OK: schema, inserts, uniqueness, tenant isolation, publish gate, cleanup");
+    console.log(
+      "DB_VERIFY_OK: schema, inserts, uniqueness, tenant isolation, publish gate, social channels, cleanup",
+    );
   } catch (error) {
     await cleanup();
     throw error;

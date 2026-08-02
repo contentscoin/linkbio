@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { pages, users } from "@/db/schema";
 import { redirectWithMessage } from "@/lib/messages";
-import { checkRateLimit } from "@/lib/ratelimit";
+import { enforceRateLimit } from "@/lib/ratelimit";
 import { getClientIp } from "@/lib/request";
 import { createSession } from "@/lib/session";
 import {
@@ -24,7 +24,7 @@ function fail(message: string): never {
 
 export async function signupAction(formData: FormData) {
   const ip = await getClientIp();
-  if (!checkRateLimit(`signup:${ip}`, 12, authWindowMs)) {
+  if (!(await enforceRateLimit(`signup:${ip}`, 12, authWindowMs))) {
     fail("Too many signup attempts. Try again later.");
   }
 

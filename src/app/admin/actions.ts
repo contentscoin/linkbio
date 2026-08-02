@@ -4,17 +4,25 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { links, pages } from "@/db/schema";
+import { links, pages, socialChannels } from "@/db/schema";
 import { requireCurrentUserPage } from "@/lib/current";
 import { redirectWithMessage } from "@/lib/messages";
 import {
+  applyTemplateToPage,
+  importSocialChannel,
+  updatePageDesign,
+} from "@/lib/page-service";
+import { getTemplate } from "@/lib/templates";
+import {
   checkboxValue,
   validateBio,
+  validateDesignForm,
   validateDisplayName,
   validateExternalUrl,
   validateHandle,
   validateInitials,
   validateLinkLabel,
+  validateOptionalContactEmail,
   validateSortOrder,
   validateTheme,
   validateUuid,
@@ -26,6 +34,14 @@ function adminFail(message: string): never {
 
 function adminSaved(message: string): never {
   redirect(redirectWithMessage("/admin", "saved", message));
+}
+
+function revalidatePage(handle: string, previous?: string) {
+  revalidatePath("/admin");
+  revalidatePath(`/${handle}`);
+  if (previous && previous !== handle) {
+    revalidatePath(`/${previous}`);
+  }
 }
 
 export async function updateProfileAction(formData: FormData) {
@@ -42,8 +58,8 @@ export async function updateProfileAction(formData: FormData) {
   const initials = validateInitials(formData.get("avatarInitials"));
   if (!initials.ok) adminFail(initials.message);
 
-  const theme = validateTheme(formData.get("theme"));
-  if (!theme.ok) adminFail(theme.message);
+  const contactEmail = validateOptionalContactEmail(formData.get("contactEmail"));
+  if (!contactEmail.ok) adminFail(contactEmail.message);
 
   const db = getDb();
 
@@ -55,7 +71,9 @@ export async function updateProfileAction(formData: FormData) {
         displayName: displayName.value,
         bio: bio.value,
         avatarInitials: initials.value,
-        theme: theme.value,
+        contactEmail: contactEmail.value,
+        showShare: checkboxValue(formData.get("showShare")),
+        showContact: checkboxValue(formData.get("showContact")),
         isPublished: checkboxValue(formData.get("isPublished")),
         updatedAt: new Date(),
       })
@@ -64,10 +82,65 @@ export async function updateProfileAction(formData: FormData) {
     adminFail("Could not save the profile. The handle may already be taken.");
   }
 
-  revalidatePath("/admin");
-  revalidatePath(`/${current.page.handle}`);
-  revalidatePath(`/${handle.value}`);
+  revalidatePage(handle.value, current.page.handle);
   adminSaved("profile");
+}
+
+export async function applyTemplateAction(formData: FormData) {
+  const current = await requireCurrentUserPage();
+  const theme = validateTheme(formData.get("theme"));
+  if (!theme.ok) adminFail(theme.message);
+
+  await applyTemplateToPage(current.page.id, theme.value);
+  revalidatePage(current.page.handle);
+  adminSaved(`template:${getTemplate(theme.value).name}`);
+}
+
+export async function updateDesignAction(formData: FormData) {
+  const current = await requireCurrentUserPage();
+  const design = validateDesignForm(formData);
+  if (!design.ok) adminFail(design.message);
+
+  await updatePageDesign(current.page.id, design.value);
+  revalidatePage(current.page.handle);
+  adminSaved("design");
+}
+
+export async function importSocialAction(formData: FormData) {
+  const current = await requireCurrentUserPage();
+  const url = validateExternalUrl(formData.get("url"));
+  if (!url.ok) adminFail(url.message);
+
+  try {
+    await importSocialChannel(current.page.id, url.value);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Could not import channel metadata.";
+    adminFail(message);
+  }
+
+  revalidatePage(current.page.handle);
+  adminSaved("social");
+}
+
+export async function deleteSocialAction(formData: FormData) {
+  const current = await requireCurrentUserPage();
+  const channelId = validateUuid(formData.get("channelId"));
+  if (!channelId.ok) adminFail(channelId.message);
+
+  const db = getDb();
+  const [owned] = await db
+    .select({ id: socialChannels.id })
+    .from(socialChannels)
+    .innerJoin(pages, eq(socialChannels.pageId, pages.id))
+    .where(and(eq(socialChannels.id, channelId.value), eq(pages.userId, current.user.id)))
+    .limit(1);
+
+  if (!owned) adminFail("Social channel not found.");
+
+  await db.delete(socialChannels).where(eq(socialChannels.id, owned.id));
+  revalidatePage(current.page.handle);
+  adminSaved("social");
 }
 
 export async function createLinkAction(formData: FormData) {
@@ -93,8 +166,7 @@ export async function createLinkAction(formData: FormData) {
     sortOrder: (lastLink?.sortOrder ?? -1) + 1,
   });
 
-  revalidatePath("/admin");
-  revalidatePath(`/${current.page.handle}`);
+  revalidatePage(current.page.handle);
   adminSaved("link");
 }
 
@@ -140,8 +212,7 @@ export async function updateLinkAction(formData: FormData) {
     })
     .where(eq(links.id, ownedLink.id));
 
-  revalidatePath("/admin");
-  revalidatePath(`/${current.page.handle}`);
+  revalidatePage(current.page.handle);
   adminSaved("link");
 }
 
@@ -157,7 +228,6 @@ export async function deleteLinkAction(formData: FormData) {
 
   await getDb().delete(links).where(eq(links.id, ownedLink.id));
 
-  revalidatePath("/admin");
-  revalidatePath(`/${current.page.handle}`);
+  revalidatePage(current.page.handle);
   adminSaved("link");
 }

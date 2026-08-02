@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "linkbio": {
+      "command": "node",
+      "args": ["mcp/server.mjs"],
+      "env": {
+        "LINKBIO_BASE_URL": "http://localhost:3000",
+        "MCP_API_KEY": "replace-with-same-value-as-MCP_API_KEY"
+      }
+    }
+  }
+}
