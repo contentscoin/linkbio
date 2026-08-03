@@ -3,10 +3,11 @@
     "linkbio": {
       "type": "stdio",
       "command": "node",
-      "args": ["C:/Users/USER/Projects/linkbio/mcp/server.mjs"],
+      "args": ["mcp/run.mjs"],
       "env": {
         "LINKBIO_BASE_URL": "http://localhost:3000",
-        "MCP_API_KEY": "same-as-app-.env.local-MCP_API_KEY"
+        "MCP_API_KEY": "same-as-app-.env.local-MCP_API_KEY",
+        "NODE_PATH": "./node_modules"
       }
     }
   }

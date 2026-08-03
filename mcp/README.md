@@ -33,7 +33,8 @@ Cursor(또는 다른 MCP 클라이언트)가 LinkBio 페이지를 **조회·정�
 - `run.mjs`: 프로젝트 루트로 cwd를 맞춘 뒤 `server.mjs` 실행 (SDK 모듈 안정화)  
 - Settings → Tools & MCP 에서 `linkbio` **녹색(ready)** 확인  
 
-예시 파일: `mcp/mcp.json.example`
+예시 파일: `mcp/mcp.json.example` (상대경로 `mcp/run.mjs` — 프로젝트 루트를 cwd로 쓸 때)  
+Windows 절대경로가 필요하면 `args`만 `C:/.../linkbio/mcp/run.mjs` 로 바꾸면 됩니다.
 
 ## 도구
 
