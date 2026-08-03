@@ -14,7 +14,7 @@ async function main() {
   `;
   console.log(
     "before:",
-    existing.map((row: { table_name: string }) => row.table_name),
+    existing.map((row) => String(row.table_name)),
   );
 
   // Base schema (idempotent-ish via IF NOT EXISTS)
@@ -95,7 +95,7 @@ async function main() {
   `;
   console.log(
     "after:",
-    after.map((row: { table_name: string }) => row.table_name),
+    after.map((row) => String(row.table_name)),
   );
   console.log("SCHEMA_OK");
 }

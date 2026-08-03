@@ -21,23 +21,53 @@ const baseUrl = (process.env.LINKBIO_BASE_URL || "http://localhost:3000").replac
 const apiKey = process.env.MCP_API_KEY || "";
 
 async function agentFetch(method, query, body) {
+  if (!apiKey || apiKey.length < 24) {
+    throw new Error(
+      "MCP_API_KEY is missing or too short (need 24+ chars, same as app .env.local).",
+    );
+  }
+
   const url = new URL(`${baseUrl}/api/v1/agent`);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value != null) url.searchParams.set(key, String(value));
     }
   }
-  const response = await fetch(url, {
-    method,
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const json = await response.json();
-  if (!response.ok || json.ok === false) {
-    throw new Error(json.error || `HTTP ${response.status}`);
+
+  let response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `LinkBio agent unreachable at ${url.origin} (${detail}). Is npm run dev running?`,
+    );
+  }
+
+  const raw = await response.text();
+  let json = null;
+  if (raw) {
+    try {
+      json = JSON.parse(raw);
+    } catch {
+      throw new Error(
+        `Agent returned non-JSON (HTTP ${response.status}): ${raw.slice(0, 180)}`,
+      );
+    }
+  }
+
+  if (!response.ok || !json || json.ok === false) {
+    throw new Error(
+      (json && json.error) ||
+        `HTTP ${response.status}${raw ? "" : " with empty body"}`,
+    );
   }
   return json;
 }
