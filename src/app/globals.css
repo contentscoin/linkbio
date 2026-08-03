@@ -467,6 +467,34 @@ p {
   font-size: 0.86rem;
 }
 
+.code-block {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #f7faf8;
+  padding: 12px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.mcp-token-reveal {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(26, 92, 69, 0.22);
+  background: #edf7f1;
+}
+
+.mcp-status-row code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 .input:focus,
 .textarea:focus,
 .select:focus {

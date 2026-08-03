@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { links, pages } from "@/db/schema";
-import { requireMcpAuth } from "@/lib/mcp-auth";
+import { assertPageScopedHandle, authenticateMcpRequest } from "@/lib/mcp-auth";
 import {
   applyTemplateToPage,
   getOwnedPageByHandle,
@@ -27,13 +27,13 @@ function jsonError(status: number, error: string) {
 }
 
 async function gate(request: NextRequest) {
-  const auth = requireMcpAuth(request);
+  const auth = await authenticateMcpRequest(request);
   if (!auth.ok) return auth;
   const allowed = await enforceRateLimit("mcp:agent", 120, 60_000);
   if (!allowed) {
     return { ok: false as const, status: 429, error: "Rate limit exceeded." };
   }
-  return { ok: true as const };
+  return auth;
 }
 
 export async function GET(request: NextRequest) {
@@ -58,6 +58,8 @@ export async function GET(request: NextRequest) {
   if (action === "page") {
     const handle = validateHandle(searchParams.get("handle"));
     if (!handle.ok) return jsonError(400, handle.message);
+    const scopeError = assertPageScopedHandle(auth, handle.value);
+    if (scopeError) return jsonError(403, scopeError);
     const page = await getOwnedPageByHandle(handle.value);
     if (!page) return jsonError(404, "Page not found.");
     const bundle = await getPageBundle(page);
@@ -81,6 +83,9 @@ export async function POST(request: NextRequest) {
   const action = typeof body.action === "string" ? body.action : "";
   const handleResult = validateHandle(typeof body.handle === "string" ? body.handle : "");
   if (!handleResult.ok) return jsonError(400, handleResult.message);
+
+  const scopeError = assertPageScopedHandle(auth, handleResult.value);
+  if (scopeError) return jsonError(403, scopeError);
 
   const page = await getOwnedPageByHandle(handleResult.value);
   if (!page) return jsonError(404, "Page not found.");

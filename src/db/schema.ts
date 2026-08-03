@@ -40,6 +40,9 @@ export const pages = pgTable(
     showShare: boolean("show_share").default(true).notNull(),
     showContact: boolean("show_contact").default(true).notNull(),
     design: jsonb("design").$type<Partial<PageDesign>>().default({}).notNull(),
+    mcpTokenHash: text("mcp_token_hash"),
+    mcpTokenPrefix: varchar("mcp_token_prefix", { length: 24 }),
+    mcpTokenCreatedAt: timestamp("mcp_token_created_at", { withTimezone: true }),
     isPublished: boolean("is_published").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
