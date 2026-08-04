@@ -1,5 +1,11 @@
 # Work log
 
+[2026-08-04 13:10 KST]
+- `bio.omo.co.kr` 는 OMO 쪽 도메인인데 LinkBio Vercel(`linkbio` / ruddy)에 붙어 잘못된 랜딩이 노출됨.
+- 정상 타깃: `https://linkbio-contentscoin-jakes-projects-0ab50f91.vercel.app/` (별도/보호된 LinkBio 배포).
+- 앱 측 조치: `src/proxy.ts` 에서 `bio.omo.co.kr` 호스트 요청을 404 분리 안내로 차단. MCP는 LinkBio 호스트에서만 유지.
+- Vercel 대시보드에서 `bio.omo.co.kr` 커스텀 도메인 제거가 근본 해결(에이전트에 Vercel 로그인 없음).
+
 [2026-08-04 12:30 KST]
 - MCP 연결 UI를 `/admin`에서 **`/settings`(마이페이지)** 로 이동. `/mypage` → settings 리다이렉트.
 - 로그인/가입 후 `/settings` 진입. API URL·토큰·Cursor 가이드·curl 제공.
