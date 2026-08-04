@@ -491,6 +491,44 @@ p {
   background: #edf7f1;
 }
 
+.mcp-connect .mcp-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mcp-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.mcp-steps strong {
+  color: var(--ink);
+}
+
+.button.compact {
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  gap: 6px;
+}
+
+.warn-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8a4b00;
+  margin-top: 6px;
+}
+
+.settings-layout {
+  padding-bottom: 48px;
+}
+
 .mcp-status-row code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }

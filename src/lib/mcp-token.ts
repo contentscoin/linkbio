@@ -10,6 +10,8 @@ import {
   isPersonalMcpToken,
 } from "@/lib/mcp-token-core";
 
+export const MCP_REVEAL_COOKIE = "linkbio_mcp_reveal";
+
 export async function issuePageMcpToken(pageId: string) {
   const token = generateMcpToken();
   const prefix = getMcpTokenDisplayPrefix(token);

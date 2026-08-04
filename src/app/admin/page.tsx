@@ -9,17 +9,16 @@ import {
   Palette,
   Plus,
   Save,
+  Settings,
   Sparkles,
   Trash2,
 } from "lucide-react";
 import { getDb } from "@/db";
 import { links, socialChannels } from "@/db/schema";
 import { Message } from "@/components/message";
-import { McpConnectPanel } from "@/components/mcp-connect-panel";
 import { PublicPreview } from "@/components/public-preview";
 import { logoutAction } from "@/app/login/actions";
 import { requireCurrentUserPage } from "@/lib/current";
-import { getPageMcpTokenStatus } from "@/lib/mcp-token";
 import { messageFromSearchParams } from "@/lib/messages";
 import { resolveDesign, TEMPLATE_IDS, templates } from "@/lib/templates";
 import { platformLabel, type SocialPlatform } from "@/lib/social-platforms";
@@ -39,7 +38,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; saved?: string; mcp_token?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
   const current = await requireCurrentUserPage();
   const db = getDb();
@@ -54,10 +53,7 @@ export default async function AdminPage({
     .where(eq(socialChannels.pageId, current.page.id))
     .orderBy(asc(socialChannels.sortOrder), asc(socialChannels.createdAt));
   const design = resolveDesign(current.page.theme, current.page.design);
-  const params = await searchParams;
-  const message = messageFromSearchParams(params);
-  const mcpStatus = getPageMcpTokenStatus(current.page);
-  const baseUrl = process.env.LINKBIO_PUBLIC_URL?.trim() || "http://localhost:3000";
+  const message = messageFromSearchParams(await searchParams);
 
   return (
     <main>
@@ -66,17 +62,21 @@ export default async function AdminPage({
           <span className="brand-mark" aria-hidden="true">
             <Link2 size={18} />
           </span>
-          <span>LinkBio Admin</span>
+          <span>페이지 편집</span>
         </Link>
         <div className="nav-actions">
+          <Link className="button secondary" href="/settings">
+            <Settings size={17} />
+            내 설정 · MCP
+          </Link>
           <Link className="button secondary" href={`/${current.page.handle}`} target="_blank">
             <ExternalLink size={17} />
-            Public page
+            공개 페이지
           </Link>
           <form action={logoutAction}>
             <button className="button secondary" type="submit">
               <LogOut size={17} />
-              Logout
+              로그아웃
             </button>
           </form>
         </div>
@@ -318,15 +318,6 @@ export default async function AdminPage({
           </div>
 
           <section className="stack">
-            <McpConnectPanel
-              baseUrl={baseUrl}
-              handle={current.page.handle}
-              hasToken={mcpStatus.hasToken}
-              issuedToken={params.mcp_token}
-              tokenCreatedAt={mcpStatus.createdAt}
-              tokenPrefix={mcpStatus.prefix}
-            />
-
             <form className="form-card" action={importSocialAction}>
               <div>
                 <p className="eyebrow">SNS channels</p>

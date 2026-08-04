@@ -42,7 +42,7 @@ export async function loginAction(formData: FormData) {
   }
 
   await createSession(user.id);
-  redirect("/admin");
+  redirect("/settings");
 }
 
 export async function logoutAction() {
