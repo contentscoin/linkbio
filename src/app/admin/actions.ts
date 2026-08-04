@@ -12,7 +12,6 @@ import {
   importSocialChannel,
   updatePageDesign,
 } from "@/lib/page-service";
-import { issuePageMcpToken, revokePageMcpToken } from "@/lib/mcp-token";
 import { getTemplate } from "@/lib/templates";
 import {
   checkboxValue,
@@ -231,21 +230,4 @@ export async function deleteLinkAction(formData: FormData) {
 
   revalidatePage(current.page.handle);
   adminSaved("link");
-}
-
-export async function issueMcpTokenAction() {
-  const current = await requireCurrentUserPage();
-  const { token } = await issuePageMcpToken(current.page.id);
-  revalidatePage(current.page.handle);
-  redirect(
-    redirectWithMessage("/admin", "saved", "mcp-token") +
-      `&mcp_token=${encodeURIComponent(token)}`,
-  );
-}
-
-export async function revokeMcpTokenAction() {
-  const current = await requireCurrentUserPage();
-  await revokePageMcpToken(current.page.id);
-  revalidatePage(current.page.handle);
-  adminSaved("mcp-revoked");
 }
