@@ -1,32 +1,25 @@
-import { loadEnvConfig } from "@next/env";
 import { neon } from "@neondatabase/serverless";
 import bcrypt from "bcryptjs";
 import { golfLinks, readSeedConfig } from "./seed-config";
 
-loadEnvConfig(process.cwd());
+const config = readSeedConfig(process.env);
+const sql = neon(config.databaseUrl);
+const passwordHash = await bcrypt.hash(config.password, 12);
 
-async function main() {
-  const config = readSeedConfig(process.env);
-  const sql = neon(config.databaseUrl);
-  const passwordHash = await bcrypt.hash(config.password, 12);
-
-  const userRows = (await sql`
+const userRows = (await sql`
   insert into users (email, password_hash)
   values (${config.email}, ${passwordHash})
   on conflict (email) do update set password_hash = excluded.password_hash
   returning id
 `) as Array<{ id: string }>;
-  const [user] = userRows;
+const [user] = userRows;
 
-  if (!user) {
-    throw new Error("Seed failed to create a user.");
-  }
+if (!user) {
+  throw new Error("Seed failed to create a user.");
+}
 
-  const pageRows = (await sql`
-  insert into pages (
-    user_id, handle, display_name, bio, avatar_initials, theme,
-    contact_email, show_share, show_contact, design, is_published
-  )
+const pageRows = (await sql`
+  insert into pages (user_id, handle, display_name, bio, avatar_initials, theme, is_published)
   values (
     ${user.id},
     ${config.handle},
@@ -34,21 +27,6 @@ async function main() {
     'Lesson packages, custom balls, and team printing links in one place.',
     'GL',
     'field',
-    ${config.email},
-    true,
-    true,
-    ${JSON.stringify({
-      buttonStyle: "solid",
-      backgroundKind: "gradient",
-      backgroundValue:
-        "radial-gradient(circle at 12% 0%, rgba(230, 184, 76, 0.28), transparent 42%), linear-gradient(165deg, #e8f0ea 0%, #f3f7f2 48%, #dfe9e2 100%)",
-      accentColor: "#1a5c45",
-      textColor: "#14241c",
-      mutedColor: "#5b6d63",
-      fontPair: "editorial",
-      layout: "stack",
-      customCss: "",
-    })},
     true
   )
   on conflict (user_id) do update set
@@ -57,33 +35,23 @@ async function main() {
     bio = excluded.bio,
     avatar_initials = excluded.avatar_initials,
     theme = excluded.theme,
-    contact_email = excluded.contact_email,
-    show_share = excluded.show_share,
-    show_contact = excluded.show_contact,
-    design = excluded.design,
     is_published = excluded.is_published,
     updated_at = now()
   returning id
 `) as Array<{ id: string }>;
-  const [page] = pageRows;
+const [page] = pageRows;
 
-  if (!page) {
-    throw new Error("Seed failed to create a page.");
-  }
+if (!page) {
+  throw new Error("Seed failed to create a page.");
+}
 
-  await sql`delete from links where page_id = ${page.id}`;
+await sql`delete from links where page_id = ${page.id}`;
 
-  for (const [index, link] of golfLinks.entries()) {
-    await sql`
+for (const [index, link] of golfLinks.entries()) {
+  await sql`
     insert into links (page_id, label, url, sort_order, is_visible)
     values (${page.id}, ${link.label}, ${link.url}, ${index}, true)
   `;
-  }
-
-  console.log(`Seeded ${config.handle} with ${golfLinks.length} links for ${config.email}.`);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+console.log(`Seeded ${config.handle} with ${golfLinks.length} links for ${config.email}.`);
