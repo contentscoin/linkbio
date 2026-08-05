@@ -13,6 +13,7 @@ type McpConnectPanelProps = {
   tokenCreatedAt: Date | null;
   issuedToken?: string | null;
   agentUrl: string;
+  mcpUrl: string;
   publicPageUrl: string;
 };
 
@@ -69,12 +70,27 @@ export function McpConnectPanel({
   tokenCreatedAt,
   issuedToken,
   agentUrl,
+  mcpUrl,
   publicPageUrl,
 }: McpConnectPanelProps) {
   const tokenPlaceholder = "<발급받은-개인-토큰>";
   const tokenForSnippets = issuedToken || tokenPlaceholder;
+  const mcpUrlWithToken = `${mcpUrl}?token=${tokenForSnippets}`;
   const baseUrl = agentUrl.replace(/\/api\/v1\/agent$/, "");
-  const mcpJson = JSON.stringify(
+
+  const cursorRemoteJson = JSON.stringify(
+    {
+      mcpServers: {
+        [`omo-bio-${handle}`]: {
+          url: mcpUrlWithToken,
+        },
+      },
+    },
+    null,
+    2,
+  );
+
+  const cursorStdioJson = JSON.stringify(
     {
       mcpServers: {
         [`omo-bio-${handle}`]: {
@@ -91,15 +107,49 @@ export function McpConnectPanel({
     null,
     2,
   );
+
+  const claudeDesktopJson = JSON.stringify(
+    {
+      mcpServers: {
+        [`omo-bio-${handle}`]: {
+          type: "http",
+          url: mcpUrl,
+          headers: {
+            Authorization: `Bearer ${tokenForSnippets}`,
+          },
+        },
+      },
+    },
+    null,
+    2,
+  );
+
+  const claudeCodeCli = [
+    `# Claude Code CLI`,
+    `claude mcp add --transport http omo-bio-${handle} \\`,
+    `  "${mcpUrl}" \\`,
+    `  --header "Authorization: Bearer ${tokenForSnippets}"`,
+    ``,
+    `# 또는 URL에 토큰 포함`,
+    `claude mcp add --transport http omo-bio-${handle} \\`,
+    `  "${mcpUrlWithToken}"`,
+  ].join("\n");
+
   const curlExample = [
     `# 내 페이지 조회`,
     `curl -H "Authorization: Bearer ${tokenForSnippets}" \\`,
     `  "${agentUrl}?action=page&handle=${handle}"`,
     ``,
-    `# 프로필 수정`,
+    `# 프로필생성도우미 시작`,
     `curl -X POST -H "Authorization: Bearer ${tokenForSnippets}" \\`,
     `  -H "Content-Type: application/json" \\`,
-    `  -d '{"action":"update_profile","handle":"${handle}","bio":"소개"}' \\`,
+    `  -d '{"action":"start_profile_wizard","handle":"${handle}"}' \\`,
+    `  "${agentUrl}"`,
+    ``,
+    `# 디자인 템플릿 적용`,
+    `curl -X POST -H "Authorization: Bearer ${tokenForSnippets}" \\`,
+    `  -H "Content-Type: application/json" \\`,
+    `  -d '{"action":"apply_design_template","handle":"${handle}","templateId":"noir-glass"}' \\`,
     `  "${agentUrl}"`,
   ].join("\n");
 
@@ -107,26 +157,30 @@ export function McpConnectPanel({
     <section className="panel mcp-connect">
       <h2>MCP · API 연결</h2>
       <p className="lede" style={{ marginBottom: 16 }}>
-        Cursor 등 MCP 클라이언트나 HTTP로 <strong>/{handle}</strong> 페이지만
-        조회·수정할 수 있는 개인 연결 정보입니다.
+        Cursor · Claude · ChatGPT에서 <strong>/{handle}</strong> 페이지만
+        조회·수정할 수 있는 개인 MCP URL과 토큰입니다.
       </p>
 
       <ol className="mcp-steps">
         <li>
-          아래에서 <strong>API URL</strong>과 <strong>개인 토큰</strong>을
-          복사합니다.
+          아래에서 <strong>개인 토큰</strong>을 발급·복사합니다.
         </li>
         <li>
-          Cursor Settings → Tools &amp; MCP에 <code>mcp.json</code> 내용을
+          클라이언트별 가이드(Cursor / Claude / ChatGPT)에 MCP URL을
           붙여넣습니다.
         </li>
         <li>
-          Cursor를 재시작한 뒤 <code>get_page</code> /{" "}
-          <code>update_profile</code> 등으로 확인합니다.
+          연결 후 <code>start_profile_wizard</code> 또는 프롬프트{" "}
+          <code>profile_creation_helper</code>로 프로필을 완성합니다.
         </li>
       </ol>
 
-      <CopyField label="API URL (Agent endpoint)" value={agentUrl} />
+      <CopyField label="MCP URL (원격 · Claude/GPT/Cursor)" value={mcpUrl} />
+      <CopyField
+        label="MCP URL + 토큰 (헤더 미지원 클라이언트용)"
+        value={mcpUrlWithToken}
+      />
+      <CopyField label="REST Agent URL" value={agentUrl} />
       <CopyField label="내 공개 페이지" value={publicPageUrl} />
       <CopyField label="Handle" value={handle} />
 
@@ -168,13 +222,100 @@ export function McpConnectPanel({
 
       {issuedToken ? <CopyField label="토큰 (전체)" value={issuedToken} /> : null}
 
-      <CopyField label="Cursor mcp.json" value={mcpJson} multiline />
-      <CopyField label="curl 예시" value={curlExample} multiline />
+      <h3 className="mcp-guide-title">Cursor</h3>
+      <ol className="mcp-steps">
+        <li>Settings → Tools &amp; MCP → New MCP Server</li>
+        <li>
+          원격 URL 방식(권장): 아래 <code>mcp.json</code>을 붙여넣습니다.
+        </li>
+        <li>
+          또는 로컬 stdio: 저장소의 <code>mcp/run.mjs</code> 경로를 사용합니다.
+        </li>
+        <li>
+          채팅에서 「프로필생성도우미 시작해줘」라고 하면{" "}
+          <code>start_profile_wizard</code>가 동작합니다.
+        </li>
+      </ol>
+      <CopyField label="Cursor mcp.json (원격 URL)" value={cursorRemoteJson} multiline />
+      <CopyField label="Cursor mcp.json (stdio)" value={cursorStdioJson} multiline />
+
+      <h3 className="mcp-guide-title">Claude (Desktop / Claude Code)</h3>
+      <ol className="mcp-steps">
+        <li>
+          Claude Desktop: 설정 → 개발자 →{" "}
+          <code>claude_desktop_config.json</code>에 HTTP MCP를 추가합니다.
+        </li>
+        <li>
+          Claude.ai Custom Connector: MCP URL에{" "}
+          <code>{mcpUrl}</code> (또는 토큰 포함 URL)을 등록합니다.
+        </li>
+        <li>
+          Claude Code: 아래 CLI를 실행한 뒤{" "}
+          <code>/mcp</code>로 연결을 확인합니다.
+        </li>
+        <li>
+          연결 후 「프로필생성도우미 작동시켜줘」→ 질의응답으로 프로필 완성.
+        </li>
+      </ol>
+      <CopyField
+        label="Claude Desktop / HTTP config"
+        value={claudeDesktopJson}
+        multiline
+      />
+      <CopyField label="Claude Code CLI" value={claudeCodeCli} multiline />
+
+      <h3 className="mcp-guide-title">ChatGPT (Custom GPT / Connector)</h3>
+      <ol className="mcp-steps">
+        <li>
+          GPT Actions 또는 MCP Connector에 MCP URL을 등록합니다:{" "}
+          <code>{mcpUrl}</code>
+        </li>
+        <li>
+          인증: Bearer 토큰(개인 MCP 토큰) 또는 URL{" "}
+          <code>?token=</code> 쿼리. (일부 ChatGPT Connector는 OAuth만
+          지원할 수 있습니다 — 그 경우 Claude/Cursor URL 방식을 권장합니다.)
+        </li>
+        <li>
+          Instructions에 「연결 후 start_profile_wizard로 프로필을 완성한다」를
+          넣습니다.
+        </li>
+        <li>
+          디자인 변경:{" "}
+          <code>list_design_templates</code> →{" "}
+          <code>apply_design_template</code> /{" "}
+          <code>set_avatar_image</code> / <code>set_custom_css</code>
+        </li>
+      </ol>
+
+      <h3 className="mcp-guide-title">주요 도구</h3>
+      <ul className="mcp-tool-list">
+        <li>
+          <code>start_profile_wizard</code> /{" "}
+          <code>answer_profile_wizard</code> — 질의응답 프로필 완성
+        </li>
+        <li>
+          <code>list_design_templates</code> /{" "}
+          <code>apply_design_template</code> — 디자인 템플릿
+        </li>
+        <li>
+          <code>set_avatar_image</code> /{" "}
+          <code>set_background_image</code> — 이미지 삽입
+        </li>
+        <li>
+          <code>set_custom_css</code> / <code>update_design</code> — CSS·레이아웃
+          변형
+        </li>
+        <li>
+          <code>get_page</code> / <code>update_profile</code> /{" "}
+          <code>upsert_link</code> — 기본 편집
+        </li>
+      </ul>
+
+      <CopyField label="REST curl 예시" value={curlExample} multiline />
 
       <p className="hint" style={{ marginTop: 8 }}>
-        Cursor 설정은 프로젝트 루트의 <code>mcp/run.mjs</code> 경로(또는 절대
-        경로)를 사용합니다. 개인 토큰은 내 페이지만 접근할 수 있으며, 다른
-        handle는 403입니다.
+        개인 토큰은 내 페이지만 접근할 수 있으며, 다른 handle는 403입니다. MCP
+        URL은 Streamable HTTP(<code>/api/mcp</code>)입니다.
       </p>
     </section>
   );

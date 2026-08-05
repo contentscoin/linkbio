@@ -21,3 +21,11 @@
 - 사용자 보고: bio.omo.co.kr `/login` 500 (Server Components render / digest)
 - 재현: 프로덕션 서버 액션 POST가 digest 500. 페이지 GET은 정상.
 - 수정: 프로덕션과 동일한 LoginForm(useActionState) + 방어적 loginAction 시그니처로 교체.
+
+[2026-08-05 22:02 KST]
+- 원격 MCP URL(`/api/mcp` Streamable HTTP) 추가 — Claude/ChatGPT/Cursor URL 연결용.
+- 인증: Bearer / x-mcp-key / `?token=` 쿼리.
+- 프로필생성도우미: start/answer/get_profile_wizard + prompt `profile_creation_helper`.
+- 디자인 템플릿·아바타/배경 이미지·커스텀 CSS 도구 추가. 공개 페이지에서 design jsonb 렌더.
+- `/settings`에 Cursor/Claude/ChatGPT 세팅 가이드 반영.
+- 검증: typecheck OK, build OK (`/api/mcp` 라우트 포함).

@@ -18,7 +18,9 @@ export function extractMcpCredential(request: NextRequest) {
   const header = request.headers.get("authorization") ?? "";
   const bearer = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
   const alt = request.headers.get("x-mcp-key")?.trim() ?? "";
-  return bearer || alt;
+  // Remote MCP clients (Claude/GPT connectors) may only support URL tokens.
+  const tokenParam = request.nextUrl.searchParams.get("token")?.trim() ?? "";
+  return bearer || alt || tokenParam;
 }
 
 export type McpAuthResult =

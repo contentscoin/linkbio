@@ -28,6 +28,7 @@ export function summarizePageBundle(page: Page, pageLinks: Link[]) {
     avatarInitials: page.avatarInitials,
     theme: page.theme,
     accent: page.accent,
+    design: page.design,
     published: page.published || page.isPublished,
     links: pageLinks.map((link) => ({
       id: link.id,

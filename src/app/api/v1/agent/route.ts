@@ -1,20 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, desc, eq } from "drizzle-orm";
-import { getDb } from "@/db";
-import { links, pages } from "@/db/schema";
-import { assertPageScopedHandle, authenticateMcpRequest } from "@/lib/mcp-auth";
-import {
-  getPageByHandle,
-  getPageLinks,
-  summarizePageBundle,
-} from "@/lib/page-bundle";
+import { authenticateMcpRequest } from "@/lib/mcp-auth";
+import { runAgentAction } from "@/lib/agent-ops";
 import { enforceRateLimit } from "@/lib/ratelimit";
-import {
-  displayNameSchema,
-  handleSchema,
-  initialsFromName,
-  urlSchema,
-} from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
@@ -34,43 +21,21 @@ async function gate(request: NextRequest) {
   return auth;
 }
 
-function parseHandle(raw: unknown) {
-  return handleSchema.safeParse(typeof raw === "string" ? raw : "");
-}
-
 export async function GET(request: NextRequest) {
   const auth = await gate(request);
   if (!auth.ok) return jsonError(auth.status, auth.error);
 
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action") || "page";
+  const body: Record<string, unknown> = {
+    handle: searchParams.get("handle") ?? undefined,
+  };
 
-  if (action === "health") {
-    return NextResponse.json({
-      ok: true,
-      service: "omo-bio-agent",
-      scope: auth.scope,
-    });
+  const result = await runAgentAction(auth, action, body);
+  if (!result.ok) {
+    return jsonError(result.status ?? 400, result.error);
   }
-
-  if (action === "page") {
-    const handle = parseHandle(searchParams.get("handle"));
-    if (!handle.success) {
-      return jsonError(400, handle.error.issues[0]?.message ?? "Invalid handle.");
-    }
-    const scopeError = assertPageScopedHandle(auth, handle.data);
-    if (scopeError) return jsonError(403, scopeError);
-
-    const page = await getPageByHandle(handle.data);
-    if (!page) return jsonError(404, "Page not found.");
-    const pageLinks = await getPageLinks(page.id);
-    return NextResponse.json({
-      ok: true,
-      page: summarizePageBundle(page, pageLinks),
-    });
-  }
-
-  return jsonError(400, "Unknown action. Use action=page or action=health.");
+  return NextResponse.json(result);
 }
 
 export async function POST(request: NextRequest) {
@@ -85,130 +50,13 @@ export async function POST(request: NextRequest) {
   }
 
   const action = typeof body.action === "string" ? body.action : "";
-  const handleResult = parseHandle(body.handle);
-  if (!handleResult.success) {
-    return jsonError(
-      400,
-      handleResult.error.issues[0]?.message ?? "Invalid handle.",
-    );
+  if (!action) {
+    return jsonError(400, "action required.");
   }
 
-  const scopeError = assertPageScopedHandle(auth, handleResult.data);
-  if (scopeError) return jsonError(403, scopeError);
-
-  const page = await getPageByHandle(handleResult.data);
-  if (!page) return jsonError(404, "Page not found.");
-
-  const db = getDb();
-
-  switch (action) {
-    case "update_profile": {
-      const patch: Partial<typeof pages.$inferInsert> = {
-        updatedAt: new Date(),
-      };
-      if (typeof body.displayName === "string") {
-        const name = displayNameSchema.safeParse(body.displayName);
-        if (!name.success) {
-          return jsonError(
-            400,
-            name.error.issues[0]?.message ?? "Invalid displayName.",
-          );
-        }
-        patch.displayName = name.data;
-        const initials = initialsFromName(name.data);
-        patch.avatarText = initials;
-        patch.avatarInitials = initials;
-      }
-      if (typeof body.bio === "string") {
-        patch.bio = body.bio.slice(0, 280);
-      }
-      if (typeof body.theme === "string") {
-        patch.theme = body.theme.slice(0, 32);
-      }
-      if (typeof body.accent === "string") {
-        patch.accent = body.accent.slice(0, 32);
-      }
-      if (typeof body.isPublished === "boolean") {
-        patch.published = body.isPublished;
-        patch.isPublished = body.isPublished;
-      }
-      if (typeof body.published === "boolean") {
-        patch.published = body.published;
-        patch.isPublished = body.published;
-      }
-      await db.update(pages).set(patch).where(eq(pages.id, page.id));
-      break;
-    }
-    case "upsert_link": {
-      const label =
-        typeof body.label === "string" ? body.label.trim().slice(0, 80) : "";
-      const url = urlSchema.safeParse(body.url);
-      if (!label) return jsonError(400, "Invalid label.");
-      if (!url.success) {
-        return jsonError(400, url.error.issues[0]?.message ?? "Invalid URL.");
-      }
-      const sublabel =
-        typeof body.sublabel === "string"
-          ? body.sublabel.trim().slice(0, 160)
-          : "";
-      const featured = body.featured === true;
-      const visible = body.isVisible !== false && body.visible !== false;
-
-      if (typeof body.linkId === "string" && body.linkId) {
-        await db
-          .update(links)
-          .set({
-            label,
-            sublabel,
-            url: url.data,
-            featured,
-            visible,
-            isVisible: visible,
-            updatedAt: new Date(),
-          })
-          .where(and(eq(links.id, body.linkId), eq(links.pageId, page.id)));
-      } else {
-        const [last] = await db
-          .select({ sortOrder: links.sortOrder })
-          .from(links)
-          .where(eq(links.pageId, page.id))
-          .orderBy(desc(links.sortOrder))
-          .limit(1);
-        const sortOrder = (last?.sortOrder ?? -1) + 1;
-        await db.insert(links).values({
-          pageId: page.id,
-          label,
-          sublabel,
-          url: url.data,
-          featured,
-          visible,
-          isVisible: visible,
-          sortOrder,
-          position: sortOrder,
-        });
-      }
-      break;
-    }
-    case "delete_link": {
-      if (typeof body.linkId !== "string" || !body.linkId) {
-        return jsonError(400, "linkId required.");
-      }
-      await db
-        .delete(links)
-        .where(and(eq(links.id, body.linkId), eq(links.pageId, page.id)));
-      break;
-    }
-    default:
-      return jsonError(
-        400,
-        "Unknown action. Use update_profile, upsert_link, or delete_link.",
-      );
+  const result = await runAgentAction(auth, action, body);
+  if (!result.ok) {
+    return jsonError(result.status ?? 400, result.error);
   }
-
-  const fresh = (await getPageByHandle(handleResult.data)) ?? page;
-  const pageLinks = await getPageLinks(fresh.id);
-  return NextResponse.json({
-    ok: true,
-    page: summarizePageBundle(fresh, pageLinks),
-  });
+  return NextResponse.json(result);
 }

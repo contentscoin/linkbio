@@ -9,3 +9,7 @@
 .mcp-steps code{font-size:12.5px}
 .mcp-code{border:1px solid var(--line);background:#f4f7f4;border-radius:11px;max-height:280px;overflow:auto;margin:0;padding:12px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;word-break:break-all}
 .mcp-connect .hint{margin-top:6px;font-size:12.5px;color:var(--ink-soft)}
+.bio-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.mcp-guide-title{margin:22px 0 10px;font-size:15px;font-weight:800}
+.mcp-tool-list{color:var(--ink-soft);margin:0 0 16px;padding-left:20px;font-size:13.5px;line-height:1.75}
+.mcp-tool-list code{font-size:12px}

@@ -18,6 +18,7 @@ export default async function SettingsPage({
   const mcpStatus = getPageMcpTokenStatus(page);
   const origin = siteOrigin();
   const agentUrl = `${origin}/api/v1/agent`;
+  const mcpUrl = `${origin}/api/mcp`;
   const publicPageUrl = `${origin}/${page.handle}`;
 
   const store = await cookies();
@@ -73,6 +74,7 @@ export default async function SettingsPage({
 
       <McpConnectPanel
         agentUrl={agentUrl}
+        mcpUrl={mcpUrl}
         handle={page.handle}
         hasToken={mcpStatus.hasToken}
         issuedToken={revealedToken}

@@ -45,7 +45,7 @@ async function agentFetch(method, query, body) {
 const tools = [
   {
     name: "get_page",
-    description: "Fetch a page summary: profile and links.",
+    description: "Fetch a page summary: profile, links, and design.",
     inputSchema: {
       type: "object",
       properties: { handle: { type: "string" } },
@@ -102,10 +102,153 @@ const tools = [
       additionalProperties: false,
     },
   },
+  {
+    name: "start_profile_wizard",
+    description:
+      "Start the profile creation helper (Q&A). Call this after MCP connect.",
+    inputSchema: {
+      type: "object",
+      properties: { handle: { type: "string" } },
+      required: ["handle"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "answer_profile_wizard",
+    description: "Submit an answer to the current (or given) wizard step.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: { type: "string" },
+        answer: { type: "string" },
+        stepId: { type: "string" },
+      },
+      required: ["handle", "answer"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_profile_wizard_status",
+    description: "Get current profile wizard progress and next question.",
+    inputSchema: {
+      type: "object",
+      properties: { handle: { type: "string" } },
+      required: ["handle"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "list_design_templates",
+    description: "List design templates (theme + layout + CSS presets).",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "apply_design_template",
+    description: "Apply a named design template to the page.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: { type: "string" },
+        templateId: { type: "string" },
+        accent: { type: "string" },
+        keepAvatar: { type: "boolean" },
+        keepBackground: { type: "boolean" },
+      },
+      required: ["handle", "templateId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "set_avatar_image",
+    description: "Set or clear the profile avatar image (https URL).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: { type: "string" },
+        imageUrl: { type: "string" },
+        clear: { type: "boolean" },
+      },
+      required: ["handle"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "set_background_image",
+    description: "Set or clear background image and optional scrim.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: { type: "string" },
+        imageUrl: { type: "string" },
+        scrim: { type: "number" },
+        clear: { type: "boolean" },
+      },
+      required: ["handle"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "set_custom_css",
+    description: "Insert or clear custom CSS for the public page design.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: { type: "string" },
+        css: { type: "string" },
+        clear: { type: "boolean" },
+      },
+      required: ["handle"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "update_design",
+    description:
+      "Update design fields: layout, pattern, motion, effect, card, size, radius, font.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: { type: "string" },
+        theme: { type: "string" },
+        accent: { type: "string" },
+        layout: { type: "string" },
+        pattern: { type: "string" },
+        motion: { type: "string" },
+        effect: { type: "string" },
+        card: { type: "string" },
+        size: { type: "string" },
+        radius: { type: "string" },
+        font: { type: "string" },
+        effectCard: { type: "string" },
+        scrim: { type: "number" },
+        templateId: { type: "string" },
+      },
+      required: ["handle"],
+      additionalProperties: false,
+    },
+  },
 ];
 
+const postActions = new Set([
+  "update_profile",
+  "upsert_link",
+  "delete_link",
+  "start_profile_wizard",
+  "answer_profile_wizard",
+  "get_profile_wizard_status",
+  "apply_design_template",
+  "set_avatar_image",
+  "set_background_image",
+  "set_custom_css",
+  "update_design",
+]);
+
 const server = new Server(
-  { name: "omo-bio", version: "0.1.0" },
+  { name: "omo-bio", version: "0.2.0" },
   { capabilities: { tools: {} } },
 );
 
@@ -115,33 +258,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args = {} } = request.params;
   let result;
 
-  switch (name) {
-    case "get_page":
-      result = await agentFetch("GET", {
-        action: "page",
-        handle: args.handle,
-      });
-      break;
-    case "update_profile":
-      result = await agentFetch("POST", null, {
-        action: "update_profile",
-        ...args,
-      });
-      break;
-    case "upsert_link":
-      result = await agentFetch("POST", null, {
-        action: "upsert_link",
-        ...args,
-      });
-      break;
-    case "delete_link":
-      result = await agentFetch("POST", null, {
-        action: "delete_link",
-        ...args,
-      });
-      break;
-    default:
-      throw new Error(`Unknown tool: ${name}`);
+  if (name === "get_page") {
+    result = await agentFetch("GET", {
+      action: "page",
+      handle: args.handle,
+    });
+  } else if (name === "list_design_templates") {
+    result = await agentFetch("GET", { action: "list_design_templates" });
+  } else if (postActions.has(name)) {
+    result = await agentFetch("POST", null, { action: name, ...args });
+  } else {
+    throw new Error(`Unknown tool: ${name}`);
   }
 
   return {
