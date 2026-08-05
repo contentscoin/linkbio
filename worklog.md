@@ -27,3 +27,8 @@
 - FairwayScene 실비주얼 복구(언덕 SVG, 골프공, 깃발, 비행 궤적) + AuroraScene 연결 + featured `추천` 배지.
 - agent `update_profile`에 `design` JSON(layout/pattern/effect 등) 반영 가능하도록 확장.
 - 검증: `npm run typecheck` OK, `npm run build` OK.
+
+[2026-08-05 21:52 KST]
+- `/fmg` 프로필 FMGS 사이트 기준으로 임의 완성 (agent API).
+- displayName=FMGS, bio=골프 마케팅 카피, accent=#cc4100, fairway.
+- 링크 10개: 공식 사이트(featured), 파미골/Luckyball/Members/CEO Golf/광고&SI, 포트폴리오, 회사소개, 상담, 카카오.
