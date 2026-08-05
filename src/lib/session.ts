@@ -6,7 +6,9 @@ const COOKIE = "omo_bio_session";
 function secretKey() {
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 32) {
-    throw new Error("SESSION_SECRET must be at least 32 characters");
+    throw new Error(
+      "SESSION_SECRET is missing or shorter than 32 characters. Set it in the environment.",
+    );
   }
   return new TextEncoder().encode(secret);
 }

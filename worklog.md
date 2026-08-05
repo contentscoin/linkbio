@@ -16,3 +16,8 @@
 - OMO Bio 베이스 위에 개인 MCP 연결 복구: `/settings`(API URL+토큰 가이드), `/mypage`→settings, `/api/v1/agent`, `mcp/run.mjs`.
 - 로그인/가입 후 `/settings` 랜딩. admin에「MCP · 설정」링크.
 - 검증: typecheck/build OK. 토큰 스모크 — page 200, wrong handle 403, update_profile 200, global key health 200.
+
+[2026-08-05 16:20 KST]
+- 사용자 보고: bio.omo.co.kr `/login` 500 (Server Components render / digest)
+- 재현: 프로덕션 서버 액션 POST가 digest 500. 페이지 GET은 정상.
+- 수정: 프로덕션과 동일한 LoginForm(useActionState) + 방어적 loginAction 시그니처로 교체.
