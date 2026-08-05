@@ -79,6 +79,12 @@ export default async function PublicPage({
   if (typeof attrs.scrim === "number") {
     stageStyle["--scrim"] = String(attrs.scrim);
   }
+  if (attrs.buttonFill) {
+    stageStyle["--button-fill"] = attrs.buttonFill;
+  }
+  if (attrs.buttonText) {
+    stageStyle["--button-text"] = attrs.buttonText;
+  }
 
   return (
     <div
@@ -88,6 +94,8 @@ export default async function PublicPage({
       data-motion={attrs.motion}
       data-effect={attrs.effect}
       data-card={attrs.card}
+      data-button={attrs.button}
+      data-shadow={attrs.shadow}
       data-size={attrs.size}
       data-radius={attrs.radius}
       data-font={attrs.font}

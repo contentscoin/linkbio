@@ -111,7 +111,12 @@ export async function updateDesignAction(formData: FormData) {
   const patch: Partial<PageDesign> = {
     layout: String(formData.get("layout") ?? "stack") as PageDesign["layout"],
     pattern: String(formData.get("pattern") ?? "none") as PageDesign["pattern"],
-    card: String(formData.get("card") ?? "elevated") as PageDesign["card"],
+    buttonStyle: String(
+      formData.get("buttonStyle") ?? "elevated",
+    ) as PageDesign["buttonStyle"],
+    buttonShadow: String(
+      formData.get("buttonShadow") ?? "none",
+    ) as PageDesign["buttonShadow"],
     font: String(formData.get("font") ?? "sans") as PageDesign["font"],
     size: String(formData.get("size") ?? "normal") as PageDesign["size"],
     radius: String(formData.get("radius") ?? "round") as PageDesign["radius"],
@@ -121,6 +126,13 @@ export async function updateDesignAction(formData: FormData) {
       formData.get("effectCard") ?? "lift",
     ) as PageDesign["effectCard"],
   };
+
+  const buttonFillRaw = String(formData.get("buttonFill") ?? "").trim();
+  const buttonTextRaw = String(formData.get("buttonText") ?? "").trim();
+  if (buttonFillRaw) patch.buttonFill = buttonFillRaw;
+  else patch.buttonFill = undefined;
+  if (buttonTextRaw) patch.buttonText = buttonTextRaw;
+  else patch.buttonText = undefined;
 
   const avatarRaw = String(formData.get("avatarImageUrl") ?? "").trim();
   const bgRaw = String(formData.get("backgroundImageUrl") ?? "").trim();
@@ -156,6 +168,8 @@ export async function updateDesignAction(formData: FormData) {
     design = mergePageDesign(page.design, patch);
     if (clearAvatar) delete design.avatarImageUrl;
     if (clearBackground) delete design.backgroundImageUrl;
+    if (!buttonFillRaw) delete design.buttonFill;
+    if (!buttonTextRaw) delete design.buttonText;
     if (clearCss) {
       delete design.customCss;
     } else if (cssRaw.trim()) {

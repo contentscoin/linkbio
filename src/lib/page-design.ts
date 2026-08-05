@@ -24,6 +24,16 @@ export type BioCard =
   | "elevated"
   | "flat"
   | "sticker";
+/** Linkstory-style button fill/look. Prefer this over raw `card`. */
+export type BioButtonStyle =
+  | "solid"
+  | "soft"
+  | "outline"
+  | "ghost"
+  | "glass"
+  | "elevated"
+  | "sticker";
+export type BioButtonShadow = "none" | "soft" | "hard" | "float";
 export type BioSize = "compact" | "normal" | "roomy";
 export type BioRadius = "sharp" | "soft" | "round" | "pill";
 export type BioFont = "sans" | "serif" | "mono";
@@ -34,7 +44,8 @@ export type BioEffectCard =
   | "tilt"
   | "shine"
   | "beam"
-  | "press";
+  | "press"
+  | "wipe";
 
 export type WizardState = {
   active: boolean;
@@ -48,7 +59,14 @@ export type PageDesign = {
   pattern?: BioPattern;
   motion?: BioMotion;
   effect?: BioEffect;
+  /** @deprecated prefer buttonStyle — kept for older pages */
   card?: BioCard;
+  buttonStyle?: BioButtonStyle;
+  buttonShadow?: BioButtonShadow;
+  /** Optional button background override (css color) */
+  buttonFill?: string;
+  /** Optional button label color override */
+  buttonText?: string;
   size?: BioSize;
   radius?: BioRadius;
   font?: BioFont;
@@ -96,6 +114,21 @@ const CARDS = new Set<BioCard>([
   "flat",
   "sticker",
 ]);
+const BUTTON_STYLES = new Set<BioButtonStyle>([
+  "solid",
+  "soft",
+  "outline",
+  "ghost",
+  "glass",
+  "elevated",
+  "sticker",
+]);
+const BUTTON_SHADOWS = new Set<BioButtonShadow>([
+  "none",
+  "soft",
+  "hard",
+  "float",
+]);
 const SIZES = new Set<BioSize>(["compact", "normal", "roomy"]);
 const RADII = new Set<BioRadius>(["sharp", "soft", "round", "pill"]);
 const FONTS = new Set<BioFont>(["sans", "serif", "mono"]);
@@ -107,7 +140,59 @@ const EFFECT_CARDS = new Set<BioEffectCard>([
   "shine",
   "beam",
   "press",
+  "wipe",
 ]);
+
+export const BUTTON_STYLE_OPTIONS: Array<{
+  id: BioButtonStyle;
+  label: string;
+  hint: string;
+}> = [
+  { id: "solid", label: "솔리드", hint: "포인트 컬러로 채움" },
+  { id: "soft", label: "소프트", hint: "연한 틴트 배경" },
+  { id: "outline", label: "아웃라인", hint: "테두리만" },
+  { id: "ghost", label: "고스트", hint: "투명·얇은 선" },
+  { id: "glass", label: "글래스", hint: "반투명 블러" },
+  { id: "elevated", label: "입체", hint: "카드형 그림자" },
+  { id: "sticker", label: "스티커", hint: "두꺼운 그림자" },
+];
+
+export const BUTTON_SHADOW_OPTIONS: Array<{
+  id: BioButtonShadow;
+  label: string;
+}> = [
+  { id: "none", label: "없음" },
+  { id: "soft", label: "소프트" },
+  { id: "hard", label: "하드" },
+  { id: "float", label: "플로트" },
+];
+
+export const BUTTON_RADIUS_OPTIONS: Array<{ id: BioRadius; label: string }> = [
+  { id: "sharp", label: "각짐" },
+  { id: "soft", label: "약간 둥글게" },
+  { id: "round", label: "둥글게" },
+  { id: "pill", label: "알약형" },
+];
+
+export const BUTTON_SIZE_OPTIONS: Array<{ id: BioSize; label: string }> = [
+  { id: "compact", label: "컴팩트" },
+  { id: "normal", label: "보통" },
+  { id: "roomy", label: "크게" },
+];
+
+export const BUTTON_HOVER_OPTIONS: Array<{
+  id: BioEffectCard;
+  label: string;
+}> = [
+  { id: "none", label: "없음" },
+  { id: "lift", label: "리프트" },
+  { id: "glow", label: "글로우" },
+  { id: "tilt", label: "틸트" },
+  { id: "shine", label: "샤인" },
+  { id: "beam", label: "빔" },
+  { id: "press", label: "프레스" },
+  { id: "wipe", label: "와이프" },
+];
 
 function asString(value: unknown) {
   return typeof value === "string" ? value : "";
@@ -116,6 +201,36 @@ function asString(value: unknown) {
 function pickEnum<T extends string>(value: unknown, allowed: Set<T>) {
   const raw = asString(value);
   return allowed.has(raw as T) ? (raw as T) : undefined;
+}
+
+function sanitizeCssColor(value: string): string | undefined {
+  const trimmed = value.trim().slice(0, 64);
+  if (!trimmed) return undefined;
+  if (
+    !/^(#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})|[a-z]+|rgb(a)?\([^)]+\)|hsl(a)?\([^)]+\))$/i.test(
+      trimmed,
+    )
+  ) {
+    return undefined;
+  }
+  return trimmed;
+}
+
+function cardToButtonStyle(card: BioCard | undefined): BioButtonStyle | undefined {
+  if (!card) return undefined;
+  if (card === "flat") return "soft";
+  if (BUTTON_STYLES.has(card as BioButtonStyle)) {
+    return card as BioButtonStyle;
+  }
+  return undefined;
+}
+
+function buttonStyleToCard(style: BioButtonStyle | undefined): BioCard | undefined {
+  if (!style) return undefined;
+  if (style === "soft") return "flat";
+  if (style === "ghost") return "outline";
+  if (CARDS.has(style as BioCard)) return style as BioCard;
+  return "elevated";
 }
 
 export function parsePageDesign(raw: unknown): PageDesign {
@@ -144,13 +259,21 @@ export function parsePageDesign(raw: unknown): PageDesign {
       ? Math.min(0.85, Math.max(0, data.scrim))
       : undefined;
 
+  const card = pickEnum(data.card, CARDS);
+  const buttonStyle =
+    pickEnum(data.buttonStyle, BUTTON_STYLES) ?? cardToButtonStyle(card);
+
   return {
     templateId: asString(data.templateId).slice(0, 64) || undefined,
     layout: pickEnum(data.layout, LAYOUTS),
     pattern: pickEnum(data.pattern, PATTERNS),
     motion: pickEnum(data.motion, MOTIONS),
     effect: pickEnum(data.effect, EFFECTS),
-    card: pickEnum(data.card, CARDS),
+    card: card ?? buttonStyleToCard(buttonStyle),
+    buttonStyle,
+    buttonShadow: pickEnum(data.buttonShadow, BUTTON_SHADOWS),
+    buttonFill: sanitizeCssColor(asString(data.buttonFill)),
+    buttonText: sanitizeCssColor(asString(data.buttonText)),
     size: pickEnum(data.size, SIZES),
     radius: pickEnum(data.radius, RADII),
     font: pickEnum(data.font, FONTS),
@@ -209,6 +332,9 @@ export function mergePageDesign(
 ): PageDesign {
   const base = parsePageDesign(current);
   const next: PageDesign = { ...base, ...patch };
+  if (patch.buttonStyle) {
+    next.card = buttonStyleToCard(patch.buttonStyle);
+  }
   if (patch.wizard) {
     next.wizard = {
       active: patch.wizard.active,
@@ -220,12 +346,21 @@ export function mergePageDesign(
 }
 
 export function designAttrs(design: PageDesign) {
+  const button =
+    design.buttonStyle || cardToButtonStyle(design.card) || "elevated";
   return {
     layout: design.layout || "stack",
     pattern: design.pattern && design.pattern !== "none" ? design.pattern : undefined,
     motion: design.motion && design.motion !== "none" ? design.motion : undefined,
     effect: design.effect && design.effect !== "none" ? design.effect : undefined,
-    card: design.card,
+    card: design.card || buttonStyleToCard(button),
+    button,
+    shadow:
+      design.buttonShadow && design.buttonShadow !== "none"
+        ? design.buttonShadow
+        : undefined,
+    buttonFill: design.buttonFill,
+    buttonText: design.buttonText,
     size: design.size,
     radius: design.radius,
     font: design.font,

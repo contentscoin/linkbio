@@ -616,6 +616,10 @@ export async function agentUpdateDesign(
     "motion",
     "effect",
     "card",
+    "buttonStyle",
+    "buttonShadow",
+    "buttonFill",
+    "buttonText",
     "size",
     "radius",
     "font",
@@ -626,6 +630,8 @@ export async function agentUpdateDesign(
       (patch as Record<string, string>)[key] = body[key] as string;
     }
   }
+  if (body.buttonFill === null) patch.buttonFill = undefined;
+  if (body.buttonText === null) patch.buttonText = undefined;
   if (typeof body.scrim === "number") patch.scrim = body.scrim;
   if (typeof body.templateId === "string") patch.templateId = body.templateId;
 

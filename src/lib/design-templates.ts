@@ -1,26 +1,48 @@
 import type { PageDesign } from "@/lib/page-design";
 
+export type TemplateCategory =
+  | "simple"
+  | "creator"
+  | "brand"
+  | "portfolio"
+  | "commerce";
+
 export type DesignTemplate = {
   id: string;
   name: string;
   description: string;
+  category: TemplateCategory;
   theme: string;
   accent: string;
   design: PageDesign;
   customCssSnippet?: string;
 };
 
+export const TEMPLATE_CATEGORIES: Array<{
+  id: TemplateCategory | "all";
+  label: string;
+}> = [
+  { id: "all", label: "전체" },
+  { id: "simple", label: "심플/공지" },
+  { id: "creator", label: "크리에이터" },
+  { id: "brand", label: "기업/브랜드" },
+  { id: "portfolio", label: "포트폴리오" },
+  { id: "commerce", label: "커머스" },
+];
+
 export const DESIGN_TEMPLATES: DesignTemplate[] = [
   {
     id: "fairway",
     name: "페어웨이",
-    description: "밝은 그린 필드 분위기. 기본 OMO Bio 테마.",
+    description: "밝은 그린 필드. 기본 OMO Bio.",
+    category: "simple",
     theme: "fairway",
     accent: "#2d6a4f",
     design: {
       layout: "stack",
       pattern: "none",
-      card: "elevated",
+      buttonStyle: "elevated",
+      buttonShadow: "soft",
       size: "normal",
       radius: "round",
       font: "sans",
@@ -28,9 +50,28 @@ export const DESIGN_TEMPLATES: DesignTemplate[] = [
     },
   },
   {
+    id: "paper-note",
+    name: "페이퍼 노트",
+    description: "종이 질감의 심플 공지형.",
+    category: "simple",
+    theme: "paper",
+    accent: "#c45c26",
+    design: {
+      layout: "stack",
+      pattern: "waves",
+      buttonStyle: "soft",
+      buttonShadow: "none",
+      size: "normal",
+      radius: "soft",
+      font: "serif",
+      effectCard: "lift",
+    },
+  },
+  {
     id: "noir-glass",
     name: "느와르 글래스",
-    description: "어두운 배경 + 글래스 카드. 야간/크리에이터 프로필용.",
+    description: "야간/크리에이터용 글래스 버튼.",
+    category: "creator",
     theme: "noir",
     accent: "#e8c547",
     design: {
@@ -38,7 +79,8 @@ export const DESIGN_TEMPLATES: DesignTemplate[] = [
       pattern: "grain",
       motion: "pulse",
       effect: "vignette",
-      card: "glass",
+      buttonStyle: "glass",
+      buttonShadow: "float",
       size: "normal",
       radius: "soft",
       font: "sans",
@@ -49,115 +91,37 @@ export const DESIGN_TEMPLATES: DesignTemplate[] = [
   {
     id: "aurora-glow",
     name: "오로라",
-    description: "보라/시안 오로라 배경과 글로우 호버.",
+    description: "크리에이터용 글로우·샤인 호버.",
+    category: "creator",
     theme: "aurora",
     accent: "#7c5cff",
     design: {
       layout: "stack",
       pattern: "none",
       effect: "glow",
-      card: "glass",
+      buttonStyle: "glass",
+      buttonShadow: "soft",
       size: "roomy",
-      radius: "round",
+      radius: "pill",
       font: "sans",
       effectCard: "shine",
     },
   },
   {
-    id: "terminal-code",
-    name: "터미널 코드",
-    description: "개발자용 모노스페이스. 코드 스니펫 CSS 포함.",
-    theme: "terminal",
-    accent: "#3dd68c",
-    design: {
-      layout: "list",
-      pattern: "grid",
-      motion: "scan",
-      effect: "scanlines",
-      card: "flat",
-      size: "compact",
-      radius: "sharp",
-      font: "mono",
-      effectCard: "none",
-    },
-    customCssSnippet: `.bio-head{border-left:3px solid var(--accent);padding-left:14px}
-.bio-link-title{letter-spacing:-.02em}`,
-  },
-  {
-    id: "editorial-serif",
-    name: "에디토리얼",
-    description: "세리프 타이포와 잡지형 여백.",
-    theme: "editorial",
-    accent: "#8b4513",
-    design: {
-      layout: "stack",
-      pattern: "none",
-      card: "outline",
-      size: "roomy",
-      radius: "sharp",
-      font: "serif",
-      effectCard: "none",
-    },
-  },
-  {
-    id: "bento-board",
-    name: "벤토 보드",
-    description: "2열 그리드 레이아웃. 링크가 많을 때 적합.",
-    theme: "bento",
-    accent: "#2563eb",
-    design: {
-      layout: "bento",
-      pattern: "dots",
-      card: "elevated",
-      size: "normal",
-      radius: "round",
-      font: "sans",
-      effectCard: "tilt",
-    },
-  },
-  {
-    id: "brutal-sticker",
-    name: "브루탈 스티커",
-    description: "두꺼운 테두리와 스티커 카드.",
-    theme: "brutal",
-    accent: "#ff3b30",
-    design: {
-      layout: "stack",
-      pattern: "stripes",
-      card: "sticker",
-      size: "normal",
-      radius: "sharp",
-      font: "sans",
-      effectCard: "press",
-    },
-  },
-  {
-    id: "paper-note",
-    name: "페이퍼 노트",
-    description: "종이 질감과 손글씨 느낌.",
-    theme: "paper",
-    accent: "#c45c26",
-    design: {
-      layout: "stack",
-      pattern: "waves",
-      card: "solid",
-      size: "normal",
-      radius: "soft",
-      font: "serif",
-      effectCard: "lift",
-    },
-  },
-  {
     id: "photo-hero",
     name: "포토 히어로",
-    description: "배경 이미지 + 스크림. avatarImageUrl / backgroundImageUrl과 함께 사용.",
+    description: "배경 이미지 위 알약형 버튼.",
+    category: "creator",
     theme: "noir",
     accent: "#ffffff",
     design: {
       layout: "stack",
       pattern: "none",
       effect: "spotlight",
-      card: "glass",
+      buttonStyle: "glass",
+      buttonShadow: "float",
+      buttonFill: "rgba(255,255,255,0.18)",
+      buttonText: "#ffffff",
       size: "roomy",
       radius: "pill",
       font: "sans",
@@ -166,6 +130,102 @@ export const DESIGN_TEMPLATES: DesignTemplate[] = [
     },
     customCssSnippet: `.bio-avatar{width:112px;height:112px;border:3px solid color-mix(in srgb,var(--accent) 70%,#fff)}
 .bio-name{text-shadow:0 2px 18px #0008}`,
+  },
+  {
+    id: "editorial-serif",
+    name: "에디토리얼",
+    description: "브랜드·매거진형 아웃라인 버튼.",
+    category: "brand",
+    theme: "editorial",
+    accent: "#8b4513",
+    design: {
+      layout: "stack",
+      pattern: "none",
+      buttonStyle: "outline",
+      buttonShadow: "none",
+      size: "roomy",
+      radius: "sharp",
+      font: "serif",
+      effectCard: "none",
+    },
+  },
+  {
+    id: "brutal-sticker",
+    name: "브루탈 스티커",
+    description: "강한 브랜드 임팩트·스티커 버튼.",
+    category: "brand",
+    theme: "brutal",
+    accent: "#ff3b30",
+    design: {
+      layout: "stack",
+      pattern: "stripes",
+      buttonStyle: "sticker",
+      buttonShadow: "hard",
+      size: "normal",
+      radius: "sharp",
+      font: "sans",
+      effectCard: "press",
+    },
+  },
+  {
+    id: "bento-board",
+    name: "벤토 보드",
+    description: "포트폴리오·링크 많은 2열 그리드.",
+    category: "portfolio",
+    theme: "bento",
+    accent: "#2563eb",
+    design: {
+      layout: "bento",
+      pattern: "dots",
+      buttonStyle: "elevated",
+      buttonShadow: "soft",
+      size: "normal",
+      radius: "round",
+      font: "sans",
+      effectCard: "tilt",
+    },
+  },
+  {
+    id: "terminal-code",
+    name: "터미널 코드",
+    description: "개발자 포트폴리오용 리스트 버튼.",
+    category: "portfolio",
+    theme: "terminal",
+    accent: "#3dd68c",
+    design: {
+      layout: "list",
+      pattern: "grid",
+      motion: "scan",
+      effect: "scanlines",
+      buttonStyle: "ghost",
+      buttonShadow: "none",
+      size: "compact",
+      radius: "sharp",
+      font: "mono",
+      effectCard: "wipe",
+    },
+    customCssSnippet: `.bio-head{border-left:3px solid var(--accent);padding-left:14px}
+.bio-link-title{letter-spacing:-.02em}`,
+  },
+  {
+    id: "commerce-solid",
+    name: "커머스 솔리드",
+    description: "구매 CTA용 풀컬러 솔리드·알약 버튼.",
+    category: "commerce",
+    theme: "bento",
+    accent: "#e11d48",
+    design: {
+      layout: "stack",
+      pattern: "none",
+      buttonStyle: "solid",
+      buttonShadow: "float",
+      buttonFill: "#e11d48",
+      buttonText: "#ffffff",
+      size: "roomy",
+      radius: "pill",
+      font: "sans",
+      effectCard: "lift",
+    },
   },
 ];
 
@@ -187,6 +247,7 @@ export const ACCENT_PRESETS = [
   "#7c5cff",
   "#e8c547",
   "#ff3b30",
+  "#e11d48",
   "#c45c26",
   "#3dd68c",
   "#111111",
@@ -194,13 +255,16 @@ export const ACCENT_PRESETS = [
 ] as const;
 
 export function listDesignTemplates() {
-  return DESIGN_TEMPLATES.map(({ id, name, description, theme, accent }) => ({
-    id,
-    name,
-    description,
-    theme,
-    accent,
-  }));
+  return DESIGN_TEMPLATES.map(
+    ({ id, name, description, theme, accent, category }) => ({
+      id,
+      name,
+      description,
+      theme,
+      accent,
+      category,
+    }),
+  );
 }
 
 export function getDesignTemplate(id: string) {
@@ -209,7 +273,11 @@ export function getDesignTemplate(id: string) {
 
 export function applyTemplateToDesign(
   template: DesignTemplate,
-  options?: { keepAvatar?: boolean; keepBackground?: boolean; current?: PageDesign },
+  options?: {
+    keepAvatar?: boolean;
+    keepBackground?: boolean;
+    current?: PageDesign;
+  },
 ): PageDesign {
   const current = options?.current ?? {};
   const next: PageDesign = {
