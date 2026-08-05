@@ -21,3 +21,7 @@
 - 사용자 보고: bio.omo.co.kr `/login` 500 (Server Components render / digest)
 - 재현: 프로덕션 서버 액션 POST가 digest 500. 페이지 GET은 정상.
 - 수정: 프로덕션과 동일한 LoginForm(useActionState) + 방어적 loginAction 시그니처로 교체.
+
+[2026-08-05 21:35 KST]
+- 사용자 요청으로 PR #9 main 머지 배포.
+- Production deploy `0dd87a0` Ready. `bio.omo.co.kr/settings` 200(비로그인 시 로그인 유도), `/api/v1/agent` 401(무토큰).
