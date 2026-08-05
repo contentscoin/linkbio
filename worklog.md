@@ -42,3 +42,6 @@
 - 사용자: 버튼 디자인 기능 없음, linkstory.co.kr 참고 요청.
 - `/admin`에 링크스토리식 **버튼 디자인**(스타일/모양/그림자/호버/색상) + 업종별 템플릿 카테고리 추가.
 - 공개 페이지 `data-button` / `data-shadow` / `--button-fill|text` 렌더 + wipe 호버.
+
+[2026-08-05 23:55 KST]
+- 사용자 요청으로 PR #12 (`cursor/admin-button-design-509c`) main 머지 완료.
