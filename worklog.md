@@ -45,3 +45,8 @@
 
 [2026-08-05 23:55 KST]
 - 사용자 요청으로 PR #12 (`cursor/admin-button-design-509c`) main 머지 완료.
+
+[2026-08-06 07:30 KST]
+- 사용자: 템플릿 적용 시 에러.
+- 원인: TemplatePicker 카테고리 필터가 선택 라디오를 unmount → templateId 미제출 → "디자인 템플릿을 선택하세요."
+- 수정: controlled selection + 카테고리 변경 시 첫 템플릿 자동 선택, apply 액션 방어 강화.

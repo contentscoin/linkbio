@@ -8,17 +8,33 @@ import {
   type TemplateCategory,
 } from "@/lib/design-templates";
 
+function templatesFor(category: TemplateCategory | "all") {
+  if (category === "all") return DESIGN_TEMPLATES;
+  return DESIGN_TEMPLATES.filter((t) => t.category === category);
+}
+
 export function TemplatePicker({
   currentTemplateId,
 }: {
   currentTemplateId: string;
 }) {
+  const initial =
+    DESIGN_TEMPLATES.find((t) => t.id === currentTemplateId)?.id ??
+    DESIGN_TEMPLATES[0]?.id ??
+    "fairway";
   const [category, setCategory] = useState<TemplateCategory | "all">("all");
+  const [selectedId, setSelectedId] = useState(initial);
 
-  const templates = useMemo(() => {
-    if (category === "all") return DESIGN_TEMPLATES;
-    return DESIGN_TEMPLATES.filter((t) => t.category === category);
-  }, [category]);
+  const templates = useMemo(() => templatesFor(category), [category]);
+
+  function changeCategory(next: TemplateCategory | "all") {
+    setCategory(next);
+    const list = templatesFor(next);
+    if (list.length === 0) return;
+    if (!list.some((t) => t.id === selectedId)) {
+      setSelectedId(list[0]!.id);
+    }
+  }
 
   return (
     <div>
@@ -29,7 +45,7 @@ export function TemplatePicker({
             type="button"
             className="seg-btn"
             aria-pressed={category === cat.id}
-            onClick={() => setCategory(cat.id)}
+            onClick={() => changeCategory(cat.id)}
           >
             {cat.label}
           </button>
@@ -43,7 +59,8 @@ export function TemplatePicker({
               type="radio"
               name="templateId"
               value={template.id}
-              defaultChecked={template.id === currentTemplateId}
+              checked={template.id === selectedId}
+              onChange={() => setSelectedId(template.id)}
             />
             <span className="pick-tile">
               <span className="pick-bars" aria-hidden="true">
@@ -76,7 +93,13 @@ export function TemplatePicker({
       </div>
       {templates.length === 0 ? (
         <p className="hint">이 카테고리에 템플릿이 없습니다.</p>
-      ) : null}
+      ) : (
+        <p className="hint" style={{ marginTop: 8 }}>
+          선택됨:{" "}
+          {DESIGN_TEMPLATES.find((t) => t.id === selectedId)?.name ??
+            selectedId}
+        </p>
+      )}
     </div>
   );
 }

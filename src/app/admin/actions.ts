@@ -74,22 +74,33 @@ export async function applyDesignTemplateAction(formData: FormData) {
   }
 
   const current = parsePageDesign(page.design);
-  const design = applyTemplateToDesign(template, {
-    keepAvatar: true,
-    keepBackground: true,
-    current,
-  });
+  const design = parsePageDesign(
+    applyTemplateToDesign(template, {
+      keepAvatar: true,
+      keepBackground: true,
+      current,
+    }),
+  );
+  // Preserve wizard progress if any.
+  if (current.wizard) {
+    design.wizard = current.wizard;
+  }
   const accentOverride = String(formData.get("accent") ?? "").trim();
 
-  await getDb()
-    .update(pages)
-    .set({
-      theme: template.theme,
-      accent: (accentOverride || template.accent).slice(0, 32),
-      design,
-      updatedAt: new Date(),
-    })
-    .where(eq(pages.id, page.id));
+  try {
+    await getDb()
+      .update(pages)
+      .set({
+        theme: template.theme,
+        accent: (accentOverride || template.accent).slice(0, 32),
+        design,
+        updatedAt: new Date(),
+      })
+      .where(eq(pages.id, page.id));
+  } catch (error) {
+    console.error("applyDesignTemplateAction failed", error);
+    adminError("템플릿 적용에 실패했습니다. 잠시 후 다시 시도하세요.");
+  }
 
   revalidatePage(page.handle);
   redirect("/admin?saved=design");
