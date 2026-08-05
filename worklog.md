@@ -32,3 +32,9 @@
 - `/fmg` 프로필 FMGS 사이트 기준으로 임의 완성 (agent API).
 - displayName=FMGS, bio=골프 마케팅 카피, accent=#cc4100, fairway.
 - 링크 10개: 공식 사이트(featured), 파미골/Luckyball/Members/CEO Golf/광고&SI, 포트폴리오, 회사소개, 상담, 카카오.
+
+[2026-08-05 22:00 KST]
+- 공개 페이지 디자인 고도화: Outfit 디스플레이 폰트, fairway 글래스 링크/히어로 타이포, 섹션 그룹(사업·알아보기·문의).
+- FairwayScene: sky/haze/bunker/gradient hills, 추가 구름·비행 궤적.
+- agent upsert_link에 `section` 지원, `scripts/polish-fmg.mjs`로 배포 후 섹션·design 재적용.
+- 검증: typecheck/build OK.

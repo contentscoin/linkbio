@@ -3,7 +3,7 @@ import Link from "next/link";
 import { and, asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getDb } from "@/db";
-import { links, pages } from "@/db/schema";
+import { links, pages, type Link as PageLink } from "@/db/schema";
 import { AuroraScene } from "@/components/aurora-scene";
 import { FairwayScene } from "@/components/fairway-scene";
 
@@ -53,6 +53,38 @@ function readDesign(raw: unknown): PageDesign {
   return raw as PageDesign;
 }
 
+function groupLinks(pageLinks: PageLink[]) {
+  const featured = pageLinks.filter((link) => link.featured);
+  const rest = pageLinks.filter((link) => !link.featured);
+  const sections: { key: string; label: string | null; items: PageLink[] }[] =
+    [];
+
+  if (featured.length > 0) {
+    sections.push({ key: "__featured", label: null, items: featured });
+  }
+
+  const order: string[] = [];
+  const map = new Map<string, PageLink[]>();
+  for (const link of rest) {
+    const key = (link.section || "").trim() || "__default";
+    if (!map.has(key)) {
+      map.set(key, []);
+      order.push(key);
+    }
+    map.get(key)!.push(link);
+  }
+
+  for (const key of order) {
+    sections.push({
+      key,
+      label: key === "__default" ? null : key,
+      items: map.get(key)!,
+    });
+  }
+
+  return sections;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -90,6 +122,8 @@ export default async function PublicPage({
     design.layout === "bento" || design.layout === "list"
       ? design.layout
       : "stack";
+  const sections = groupLinks(pageLinks);
+  let riseIndex = 0;
 
   return (
     <div
@@ -118,50 +152,67 @@ export default async function PublicPage({
       <main className="bio" data-layout={layout}>
         <header
           className="bio-head bio-rise"
-          style={{ animationDelay: "0.05s" }}
+          style={{ animationDelay: "0.04s" }}
         >
-          <div className="bio-avatar">{avatar}</div>
+          <div className="bio-avatar" aria-hidden="true">
+            {avatar}
+          </div>
+          <p className="bio-kicker">/{page.handle}</p>
           <h1 className="bio-name">{page.displayName}</h1>
-          <p className="bio-handle">/{page.handle}</p>
+          <span className="bio-rule" aria-hidden="true" />
           {page.bio ? <p className="bio-desc">{page.bio}</p> : null}
         </header>
 
-        <section
-          className="bio-section bio-rise"
-          style={{ animationDelay: "0.18s" }}
-        >
-          <div className="bio-links">
-            {pageLinks.map((link, index) => (
-              <a
-                key={link.id}
-                className={
-                  link.featured ? "bio-link bio-link--featured" : "bio-link"
-                }
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                style={{ animationDelay: `${0.22 + index * 0.06}s` }}
-              >
-                {link.featured ? (
-                  <span className="bio-badge">추천</span>
-                ) : null}
-                <span className="bio-link-body">
-                  <span className="bio-link-title">{link.label}</span>
-                  {link.sublabel ? (
-                    <span className="bio-link-sub">{link.sublabel}</span>
-                  ) : null}
-                </span>
-                <span className="bio-link-mark" aria-hidden="true">
-                  ›
-                </span>
-              </a>
-            ))}
-          </div>
-        </section>
+        {sections.map((section) => {
+          riseIndex += 1;
+          const sectionDelay = 0.12 + riseIndex * 0.05;
+          return (
+            <section
+              key={section.key}
+              className="bio-section bio-rise"
+              style={{ animationDelay: `${sectionDelay}s` }}
+            >
+              {section.label ? (
+                <h2 className="bio-section-label">{section.label}</h2>
+              ) : null}
+              <div className="bio-links">
+                {section.items.map((link, index) => (
+                  <a
+                    key={link.id}
+                    className={
+                      link.featured
+                        ? "bio-link bio-link--featured bio-rise"
+                        : "bio-link bio-rise"
+                    }
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    style={{
+                      animationDelay: `${sectionDelay + 0.06 + index * 0.05}s`,
+                    }}
+                  >
+                    {link.featured ? (
+                      <span className="bio-badge">공식</span>
+                    ) : null}
+                    <span className="bio-link-body">
+                      <span className="bio-link-title">{link.label}</span>
+                      {link.sublabel ? (
+                        <span className="bio-link-sub">{link.sublabel}</span>
+                      ) : null}
+                    </span>
+                    <span className="bio-link-mark" aria-hidden="true">
+                      ›
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </section>
+          );
+        })}
 
         <footer
           className="bio-foot bio-rise"
-          style={{ animationDelay: "0.36s" }}
+          style={{ animationDelay: "0.55s" }}
         >
           <Link href="/">OMO Bio로 만든 페이지</Link>
         </footer>

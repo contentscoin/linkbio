@@ -188,6 +188,8 @@ export async function POST(request: NextRequest) {
           : "";
       const featured = body.featured === true;
       const visible = body.isVisible !== false && body.visible !== false;
+      const section =
+        typeof body.section === "string" ? body.section.trim().slice(0, 40) : undefined;
 
       if (typeof body.linkId === "string" && body.linkId) {
         await db
@@ -199,6 +201,7 @@ export async function POST(request: NextRequest) {
             featured,
             visible,
             isVisible: visible,
+            ...(section !== undefined ? { section } : {}),
             updatedAt: new Date(),
           })
           .where(and(eq(links.id, body.linkId), eq(links.pageId, page.id)));
@@ -218,6 +221,7 @@ export async function POST(request: NextRequest) {
           featured,
           visible,
           isVisible: visible,
+          section: section ?? "",
           sortOrder,
           position: sortOrder,
         });

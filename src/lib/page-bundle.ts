@@ -37,6 +37,7 @@ export function summarizePageBundle(page: Page, pageLinks: Link[]) {
       url: link.url,
       featured: link.featured,
       visible: link.visible && link.isVisible,
+      section: link.section || "",
       sortOrder: link.sortOrder,
     })),
   };
