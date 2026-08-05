@@ -1,5 +1,12 @@
 # Work log
 
+[2026-08-05 10:37 KST]
+- 사용자 확인: `bio.omo.co.kr` 가 LinkBio 정상 운영 도메인이었음. 리포(`contentscoin/linkbio`)도 맞음.
+- 이전 "도메인 분리" 판단이 오해였음 → `src/proxy.ts` 차단 커밋 revert 로 복구.
+
+[2026-08-04 13:10 KST]
+- (철회) `bio.omo.co.kr` 호스트 차단 시도 — 사용자 피드백으로 잘못된 조치로 확인되어 2026-08-05 revert.
+
 [2026-08-04 12:30 KST]
 - MCP 연결 UI를 `/admin`에서 **`/settings`(마이페이지)** 로 이동. `/mypage` → settings 리다이렉트.
 - 로그인/가입 후 `/settings` 진입. API URL·토큰·Cursor 가이드·curl 제공.
