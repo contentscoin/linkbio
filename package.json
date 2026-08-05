@@ -11,9 +11,11 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "seed:golf": "node scripts/seed-golf.mjs"
+    "seed:golf": "node scripts/seed-golf.mjs",
+    "mcp": "node mcp/server.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.25.2",
     "@neondatabase/serverless": "1.1.0",
     "bcryptjs": "3.0.3",
     "drizzle-orm": "0.45.2",

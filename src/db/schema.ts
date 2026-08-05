@@ -46,6 +46,9 @@ export const pages = pgTable(
     contactEmail: varchar("contact_email", { length: 320 }),
     showShare: boolean("show_share").default(false).notNull(),
     showContact: boolean("show_contact").default(false).notNull(),
+    mcpTokenHash: text("mcp_token_hash"),
+    mcpTokenPrefix: varchar("mcp_token_prefix", { length: 24 }),
+    mcpTokenCreatedAt: timestamp("mcp_token_created_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

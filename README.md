@@ -21,8 +21,15 @@ npm run dev
 | `/` | 랜딩 |
 | `/signup` | 가입 |
 | `/login` | 로그인 |
+| `/settings` | 계정 · MCP 연결 (API URL + 개인 토큰) |
+| `/mypage` | `/settings`로 리다이렉트 |
 | `/admin` | 편집기 |
 | `/{handle}` | 공개 페이지 |
+| `/api/v1/agent` | Agent / MCP HTTP API |
+
+## MCP
+
+로그인 후 `/settings`에서 개인 토큰을 발급하고 Cursor `mcp.json`에 붙여넣습니다. 자세한 내용은 [`mcp/README.md`](mcp/README.md).
 
 ## 주의
 

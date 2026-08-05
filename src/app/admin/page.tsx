@@ -34,6 +34,9 @@ export default async function AdminPage({
           OMO Bio 편집
         </span>
         <div className="row" style={{ margin: 0 }}>
+          <Link className="btn" href="/settings">
+            MCP · 설정
+          </Link>
           <Link className="btn" href={`/${page.handle}`} target="_blank">
             공개 페이지
           </Link>
