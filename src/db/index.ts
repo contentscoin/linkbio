@@ -1,21 +1,13 @@
-import "server-only";
-
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
-function createDb(databaseUrl: string) {
-  return drizzle(neon(databaseUrl), { schema });
-}
-
-let cachedDb: ReturnType<typeof createDb> | undefined;
+let cached: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
 export function getDb() {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error("DATABASE_URL is not set");
-  }
-
-  cachedDb ??= createDb(databaseUrl);
-  return cachedDb;
+  if (cached) return cached;
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is not set");
+  cached = drizzle(neon(url), { schema });
+  return cached;
 }

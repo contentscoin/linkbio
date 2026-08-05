@@ -5,81 +5,76 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { pages, users } from "@/db/schema";
-import { redirectWithMessage } from "@/lib/messages";
-import { checkRateLimit } from "@/lib/ratelimit";
-import { getClientIp } from "@/lib/request";
 import { createSession } from "@/lib/session";
 import {
-  validateDisplayName,
-  validateEmail,
-  validateHandle,
-  validatePassword,
+  displayNameSchema,
+  emailSchema,
+  handleSchema,
+  initialsFromName,
+  passwordSchema,
 } from "@/lib/validation";
 
-const authWindowMs = 10 * 60 * 1000;
-
-function fail(message: string): never {
-  redirect(redirectWithMessage("/signup", "error", message));
-}
-
 export async function signupAction(formData: FormData) {
-  const ip = await getClientIp();
-  if (!checkRateLimit(`signup:${ip}`, 12, authWindowMs)) {
-    fail("Too many signup attempts. Try again later.");
+  const email = emailSchema.safeParse(formData.get("email"));
+  const password = passwordSchema.safeParse(formData.get("password"));
+  const handle = handleSchema.safeParse(formData.get("handle"));
+  const displayName = displayNameSchema.safeParse(formData.get("displayName"));
+
+  if (!email.success) {
+    redirect("/signup?error=" + encodeURIComponent(email.error.issues[0]?.message ?? "이메일을 확인하세요."));
   }
-
-  const email = validateEmail(formData.get("email"));
-  if (!email.ok) fail(email.message);
-
-  const password = validatePassword(formData.get("password"));
-  if (!password.ok) fail(password.message);
-
-  const handle = validateHandle(formData.get("handle"));
-  if (!handle.ok) fail(handle.message);
-
-  const displayName = validateDisplayName(formData.get("displayName"));
-  if (!displayName.ok) fail(displayName.message);
+  if (!password.success) {
+    redirect("/signup?error=" + encodeURIComponent(password.error.issues[0]?.message ?? "비밀번호를 확인하세요."));
+  }
+  if (!handle.success) {
+    redirect("/signup?error=" + encodeURIComponent(handle.error.issues[0]?.message ?? "주소를 확인하세요."));
+  }
+  if (!displayName.success) {
+    redirect("/signup?error=" + encodeURIComponent(displayName.error.issues[0]?.message ?? "이름을 확인하세요."));
+  }
 
   const db = getDb();
   const [existingEmail] = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, email.value))
+    .where(eq(users.email, email.data))
     .limit(1);
   if (existingEmail) {
-    fail("That email is already registered.");
+    redirect("/signup?error=" + encodeURIComponent("이미 가입된 이메일입니다."));
   }
 
   const [existingHandle] = await db
     .select({ id: pages.id })
     .from(pages)
-    .where(eq(pages.handle, handle.value))
+    .where(eq(pages.handle, handle.data))
     .limit(1);
   if (existingHandle) {
-    fail("That handle is already taken.");
+    redirect("/signup?error=" + encodeURIComponent("이미 사용 중인 주소입니다."));
   }
 
-  const passwordHash = await bcrypt.hash(password.value, 12);
+  const passwordHash = await bcrypt.hash(password.data, 12);
   const [user] = await db
     .insert(users)
-    .values({ email: email.value, passwordHash })
-    .returning({ id: users.id });
+    .values({ email: email.data, passwordHash })
+    .returning();
 
   if (!user) {
-    fail("Could not create the account.");
+    redirect("/signup?error=" + encodeURIComponent("가입에 실패했습니다. 다시 시도하세요."));
   }
 
-  try {
-    await db.insert(pages).values({
-      userId: user.id,
-      handle: handle.value,
-      displayName: displayName.value,
-      avatarInitials: displayName.value.slice(0, 2).toUpperCase(),
-    });
-  } catch {
-    await db.delete(users).where(eq(users.id, user.id));
-    fail("Could not create the page. Try a different handle.");
-  }
+  const initials = initialsFromName(displayName.data);
+  await db.insert(pages).values({
+    userId: user.id,
+    handle: handle.data,
+    displayName: displayName.data,
+    bio: "",
+    avatarText: initials,
+    avatarInitials: initials,
+    theme: "fairway",
+    accent: "",
+    published: true,
+    isPublished: true,
+  });
 
   await createSession(user.id);
   redirect("/admin");

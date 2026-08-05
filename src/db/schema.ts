@@ -1,6 +1,7 @@
 import {
   boolean,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -13,7 +14,7 @@ export const users = pgTable(
   "users",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    email: varchar("email", { length: 320 }).notNull(),
+    email: text("email").notNull(),
     passwordHash: text("password_hash").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -29,12 +30,22 @@ export const pages = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    handle: varchar("handle", { length: 32 }).notNull(),
-    displayName: varchar("display_name", { length: 80 }).notNull(),
-    bio: varchar("bio", { length: 280 }).default("").notNull(),
-    avatarInitials: varchar("avatar_initials", { length: 4 }).default("LB").notNull(),
-    theme: varchar("theme", { length: 24 }).default("field").notNull(),
+    handle: text("handle").notNull(),
+    displayName: text("display_name").notNull(),
+    bio: text("bio").default("").notNull(),
+    avatarText: text("avatar_text").default("").notNull(),
+    avatarInitials: varchar("avatar_initials", { length: 4 })
+      .default("OB")
+      .notNull(),
+    theme: text("theme").default("fairway").notNull(),
+    accent: text("accent").default("").notNull(),
+    style: jsonb("style").$type<Record<string, unknown>>().default({}).notNull(),
+    design: jsonb("design").$type<Record<string, unknown>>().default({}).notNull(),
+    published: boolean("published").default(true).notNull(),
     isPublished: boolean("is_published").default(true).notNull(),
+    contactEmail: varchar("contact_email", { length: 320 }),
+    showShare: boolean("show_share").default(false).notNull(),
+    showContact: boolean("show_contact").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -53,10 +64,20 @@ export const links = pgTable("links", {
   pageId: uuid("page_id")
     .notNull()
     .references(() => pages.id, { onDelete: "cascade" }),
-  label: varchar("label", { length: 80 }).notNull(),
+  section: text("section").default("").notNull(),
+  label: text("label").notNull(),
+  sublabel: text("sublabel").default("").notNull(),
   url: text("url").notNull(),
-  sortOrder: integer("sort_order").default(0).notNull(),
+  featured: boolean("featured").default(false).notNull(),
+  visible: boolean("visible").default(true).notNull(),
   isVisible: boolean("is_visible").default(true).notNull(),
+  position: integer("position").default(0).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  kind: text("kind").default("link").notNull(),
+  size: text("size").default("auto").notNull(),
+  span: integer("span").default(1).notNull(),
+  variant: text("variant").default("line").notNull(),
+  clickCount: integer("click_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

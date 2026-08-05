@@ -5,40 +5,29 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
-import { redirectWithMessage } from "@/lib/messages";
-import { checkRateLimit } from "@/lib/ratelimit";
-import { getClientIp } from "@/lib/request";
 import { createSession, deleteSession } from "@/lib/session";
-import { validateEmail } from "@/lib/validation";
-
-const dummyHash = "$2b$12$ER8nKhSzB9/36v7.HwEfQ.dhR6ORVLHYE0od.0FwvZEipHpZHDora";
-const authWindowMs = 10 * 60 * 1000;
-
-function fail(message: string): never {
-  redirect(redirectWithMessage("/login", "error", message));
-}
+import { emailSchema } from "@/lib/validation";
 
 export async function loginAction(formData: FormData) {
-  const ip = await getClientIp();
-  if (!checkRateLimit(`login:${ip}`, 20, authWindowMs)) {
-    fail("Too many login attempts. Try again later.");
+  const emailParsed = emailSchema.safeParse(formData.get("email"));
+  const password = String(formData.get("password") ?? "");
+
+  if (!emailParsed.success) {
+    redirect("/login?error=" + encodeURIComponent("이메일 또는 비밀번호가 올바르지 않습니다."));
   }
 
-  const email = validateEmail(formData.get("email"));
-  if (!email.ok) fail("Email or password is incorrect.");
-
-  const password = String(formData.get("password") ?? "");
   const db = getDb();
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.email, email.value))
+    .where(eq(users.email, emailParsed.data))
     .limit(1);
 
-  const passwordHash = user?.passwordHash ?? dummyHash;
-  const matches = await bcrypt.compare(password, passwordHash);
-  if (!user || !matches) {
-    fail("Email or password is incorrect.");
+  const dummy =
+    "$2b$12$ER8nKhSzB9/36v7.HwEfQ.dhR6ORVLHYE0od.0FwvZEipHpZHDora";
+  const ok = await bcrypt.compare(password, user?.passwordHash ?? dummy);
+  if (!user || !ok) {
+    redirect("/login?error=" + encodeURIComponent("이메일 또는 비밀번호가 올바르지 않습니다."));
   }
 
   await createSession(user.id);

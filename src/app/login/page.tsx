@@ -1,7 +1,4 @@
 import Link from "next/link";
-import { LogIn } from "lucide-react";
-import { Message } from "@/components/message";
-import { messageFromSearchParams } from "@/lib/messages";
 import { loginAction } from "./actions";
 
 export default async function LoginPage({
@@ -9,41 +6,55 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const message = messageFromSearchParams(await searchParams);
+  const { error } = await searchParams;
 
   return (
-    <main className="form-page">
-      <div className="form-shell">
-        <form className="form-card" action={loginAction}>
-          <Link className="brand" href="/">
-            <span className="brand-mark" aria-hidden="true">
-              <LogIn size={18} />
-            </span>
-            <span>Login</span>
-          </Link>
-          <Message message={message} />
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <input className="input" id="email" name="email" type="email" autoComplete="email" required />
-          </div>
-          <div className="field">
-            <label htmlFor="password">Password</label>
+    <main className="auth">
+      <div className="auth-top">
+        <Link className="auth-back" href="/" aria-label="처음으로">
+          ‹
+        </Link>
+        <div className="auth-progress" aria-hidden="true">
+          <div className="auth-progress-fill" style={{ width: "100%" }} />
+        </div>
+      </div>
+
+      <div className="auth-body">
+        <h1 className="auth-title">다시 오셨네요</h1>
+        <p className="auth-sub">이메일과 비밀번호를 입력하세요.</p>
+
+        {error ? <div className="auth-notice">{error}</div> : null}
+
+        <form action={loginAction}>
+          <div className="auth-field" style={{ marginBottom: 22 }}>
             <input
-              className="input"
-              id="password"
-              name="password"
+              className="auth-input"
+              type="email"
+              name="email"
+              placeholder="이메일"
+              autoComplete="email"
+              required
+            />
+          </div>
+          <div className="auth-field" style={{ marginBottom: 28 }}>
+            <input
+              className="auth-input"
               type="password"
+              name="password"
+              placeholder="비밀번호"
               autoComplete="current-password"
               required
             />
           </div>
-          <button className="button primary" type="submit">
-            <LogIn size={17} />
-            Login
-          </button>
-          <p className="small muted">
-            Need a page? <Link href="/signup">Create one</Link>
-          </p>
+
+          <div className="auth-foot" style={{ position: "static", background: "none", padding: 0 }}>
+            <button className="auth-btn" type="submit">
+              로그인
+            </button>
+            <p className="auth-alt">
+              계정이 없나요? <Link href="/signup">가입하기</Link>
+            </p>
+          </div>
         </form>
       </div>
     </main>
