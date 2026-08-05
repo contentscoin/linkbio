@@ -136,6 +136,41 @@ export async function POST(request: NextRequest) {
         patch.published = body.published;
         patch.isPublished = body.published;
       }
+      if (body.design && typeof body.design === "object" && !Array.isArray(body.design)) {
+        const incoming = body.design as Record<string, unknown>;
+        const next: Record<string, string> = {
+          ...(page.design && typeof page.design === "object" && !Array.isArray(page.design)
+            ? Object.fromEntries(
+                Object.entries(page.design).filter(
+                  (entry): entry is [string, string] =>
+                    typeof entry[0] === "string" && typeof entry[1] === "string",
+                ),
+              )
+            : {}),
+        };
+        const keys = [
+          "layout",
+          "pattern",
+          "motion",
+          "effect",
+          "card",
+          "size",
+          "radius",
+          "font",
+          "effectCard",
+        ] as const;
+        for (const key of keys) {
+          const value = incoming[key];
+          if (value === null) {
+            delete next[key];
+            continue;
+          }
+          if (typeof value === "string" && value.trim()) {
+            next[key] = value.trim().slice(0, 32);
+          }
+        }
+        patch.design = next;
+      }
       await db.update(pages).set(patch).where(eq(pages.id, page.id));
       break;
     }

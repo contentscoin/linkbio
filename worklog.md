@@ -21,3 +21,9 @@
 - 사용자 보고: bio.omo.co.kr `/login` 500 (Server Components render / digest)
 - 재현: 프로덕션 서버 액션 POST가 digest 500. 페이지 GET은 정상.
 - 수정: 프로덕션과 동일한 LoginForm(useActionState) + 방어적 loginAction 시그니처로 교체.
+
+[2026-08-05 21:40 KST]
+- `/fmg` 페이지 디자인: theme `fairway`, accent `#cc4100`, bio·FMGS 링크 카피 정리, 이니셜 `신태` (agent API 적용, 라이브 즉시 반영).
+- FairwayScene 실비주얼 복구(언덕 SVG, 골프공, 깃발, 비행 궤적) + AuroraScene 연결 + featured `추천` 배지.
+- agent `update_profile`에 `design` JSON(layout/pattern/effect 등) 반영 가능하도록 확장.
+- 검증: `npm run typecheck` OK, `npm run build` OK.
