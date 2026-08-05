@@ -169,6 +169,30 @@ export const DESIGN_TEMPLATES: DesignTemplate[] = [
   },
 ];
 
+/** Base CSS themes available on public pages (`data-theme`). */
+export const THEME_OPTIONS = [
+  { id: "fairway", name: "페어웨이", colors: ["#d8ecf7", "#2d6a4f", "#fbfaf4"] },
+  { id: "bento", name: "벤토", colors: ["#f4f5f7", "#2563eb", "#ffffff"] },
+  { id: "brutal", name: "브루탈", colors: ["#f5f0e8", "#ff3b30", "#111111"] },
+  { id: "editorial", name: "에디토리얼", colors: ["#fdfbf7", "#8b4513", "#f5f1e8"] },
+  { id: "noir", name: "느와르", colors: ["#0c0c0d", "#e8c547", "#16161a"] },
+  { id: "aurora", name: "오로라", colors: ["#0f0a1e", "#7c5cff", "#2ec5ce"] },
+  { id: "terminal", name: "터미널", colors: ["#0a0e0a", "#3dd68c", "#101610"] },
+  { id: "paper", name: "페이퍼", colors: ["#f6f1e4", "#c45c26", "#fffdf7"] },
+] as const;
+
+export const ACCENT_PRESETS = [
+  "#2d6a4f",
+  "#2563eb",
+  "#7c5cff",
+  "#e8c547",
+  "#ff3b30",
+  "#c45c26",
+  "#3dd68c",
+  "#111111",
+  "#ffffff",
+] as const;
+
 export function listDesignTemplates() {
   return DESIGN_TEMPLATES.map(({ id, name, description, theme, accent }) => ({
     id,
