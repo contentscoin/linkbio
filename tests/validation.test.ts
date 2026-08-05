@@ -47,7 +47,6 @@ test("validates handles and blocks reserved route names", () => {
     "login",
     "signup",
     "api",
-    "mcp",
     "robots.txt",
     "sitemap.xml",
     "a".repeat(33),

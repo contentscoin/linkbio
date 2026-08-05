@@ -21,7 +21,6 @@ export const reservedHandles = new Set([
   "static",
   "terms",
   "vercel",
-  "mcp",
 ]);
 
 export function isReservedHandle(handle: string) {
