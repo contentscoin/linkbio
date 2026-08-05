@@ -13,7 +13,6 @@ export const reservedHandles = new Set([
   "links",
   "login",
   "logout",
-  "mypage",
   "privacy",
   "robots.txt",
   "settings",

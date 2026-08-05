@@ -9,7 +9,6 @@ Postgres 기반 **링크인바이오** 앱입니다.
 |------|------|
 | 공개 페이지 | `/{handle}` — 아바타·바이오·링크 버튼·SNS 카드·공유/메일 CTA |
 | 관리자 | `/admin` — 프로필, 템플릿 8종, 꾸미기, SNS import, 링크 CRUD, 라이브 미리보기 |
-| 내 설정 | `/settings` · `/mypage` — MCP 연결 가이드, API URL, 개인 토큰 |
 | SNS | 채널 URL → OG/공개 메타 수집 → 카드로 표시 |
 | 공유·메일 | Share / 링크 복사 / `mailto` 연락 |
 | MCP 에이전트 | stdio MCP + HTTP `/api/v1/agent` 로 페이지·디자인·링크 제어 |
@@ -130,19 +129,6 @@ OAuth 없이 **공개 메타(oEmbed/OG)** 기반입니다.
 
 앱이 떠 있는 상태에서 에이전트가 페이지를 읽고 고칠 수 있습니다.
 
-### 로그인 후: 내 설정에서 연결 가이드
-
-로그인/가입 후 **`/settings`**(또는 `/mypage`)로 이동합니다.
-
-| 항목 | 설명 |
-|------|------|
-| API URL | `{SITE}/api/v1/agent` |
-| 개인 토큰 | `lbmcp_…` — **내 handle만** 접근 |
-| Cursor `mcp.json` | 복사해서 Tools & MCP에 등록 |
-| curl 예시 | HTTP 디버그용 |
-
-페이지 편집은 `/admin`, MCP 연결·API URL은 **`/settings`** 입니다.
-
 ### Cursor 설정
 
 `~/.cursor/mcp.json` 또는 프로젝트 `.cursor/mcp.json` 예시 (`mcp/mcp.json.example` 참고):
@@ -153,10 +139,10 @@ OAuth 없이 **공개 메타(oEmbed/OG)** 기반입니다.
     "linkbio": {
       "type": "stdio",
       "command": "node",
-      "args": ["mcp/run.mjs"],
+      "args": ["C:/Users/USER/Projects/linkbio/mcp/run.mjs"],
       "env": {
         "LINKBIO_BASE_URL": "http://localhost:3000",
-        "MCP_API_KEY": "설정에서-발급한-개인-토큰"
+        "MCP_API_KEY": "앱-.env.local-과-동일한-값"
       }
     }
   }
@@ -165,7 +151,7 @@ OAuth 없이 **공개 메타(oEmbed/OG)** 기반입니다.
 
 - `"type": "stdio"` **필수**  
 - 설정 후 Cursor **완전 종료 → 재실행**  
-- Settings → Tools & MCP 에서 서버 녹색 확인  
+- Settings → Tools & MCP 에서 `linkbio` 녹색 확인  
 
 상세: [`mcp/README.md`](./mcp/README.md)
 

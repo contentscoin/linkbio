@@ -12,4 +12,3 @@
 - [x] Optional Upstash rate limit (env-gated)
 - [x] README / MCP 문서 한글 상세화
 - [x] Visual QA on Neon (`bolbanjang` seed, public 200, MCP templates/page OK)
-- [x] Settings/mypage MCP connect guide (API URL + personal token, not admin)

@@ -82,5 +82,5 @@ export async function signupAction(formData: FormData) {
   }
 
   await createSession(user.id);
-  redirect("/settings");
+  redirect("/admin");
 }

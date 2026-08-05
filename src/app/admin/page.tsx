@@ -9,7 +9,6 @@ import {
   Palette,
   Plus,
   Save,
-  Settings,
   Sparkles,
   Trash2,
 } from "lucide-react";
@@ -62,21 +61,17 @@ export default async function AdminPage({
           <span className="brand-mark" aria-hidden="true">
             <Link2 size={18} />
           </span>
-          <span>페이지 편집</span>
+          <span>LinkBio Admin</span>
         </Link>
         <div className="nav-actions">
-          <Link className="button secondary" href="/settings">
-            <Settings size={17} />
-            내 설정 · MCP
-          </Link>
           <Link className="button secondary" href={`/${current.page.handle}`} target="_blank">
             <ExternalLink size={17} />
-            공개 페이지
+            Public page
           </Link>
           <form action={logoutAction}>
             <button className="button secondary" type="submit">
               <LogOut size={17} />
-              로그아웃
+              Logout
             </button>
           </form>
         </div>
