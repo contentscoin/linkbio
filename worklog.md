@@ -1,19 +1,12 @@
 # Work log
 
+[2026-08-05 11:15 KST]
+- 사용자 요청: `https://linkbio-contentscoin-jakes-projects-0ab50f91.vercel.app/` 버전으로 롤백.
+- `main` 트리를 `5423f3b` (bcc2027 MCP agent + docs) 기준으로 복원. 개인 `/settings` MCP 토큰 UI·관련 마이그레이션 제거.
+- 이 베이스 위에 MCP 연결 가이드를 다시 붙일 예정.
+
 [2026-08-05 10:37 KST]
-- 사용자 확인: `bio.omo.co.kr` 가 LinkBio 정상 운영 도메인이었음. 리포(`contentscoin/linkbio`)도 맞음.
-- 이전 "도메인 분리" 판단이 오해였음 → `src/proxy.ts` 차단 커밋 revert 로 복구.
-
-[2026-08-04 13:10 KST]
-- (철회) `bio.omo.co.kr` 호스트 차단 시도 — 사용자 피드백으로 잘못된 조치로 확인되어 2026-08-05 revert.
-
-[2026-08-04 12:30 KST]
-- MCP 연결 UI를 `/admin`에서 **`/settings`(마이페이지)** 로 이동. `/mypage` → settings 리다이렉트.
-- 로그인/가입 후 `/settings` 진입. API URL·토큰·Cursor 가이드·curl 제공.
-- admin 툴바에 「내 설정 · MCP」 링크. 토큰은 URL이 아니라 httpOnly 쿠키로 1회 표시.
+- (참고) bio.omo.co.kr 는 LinkBio 운영 도메인. 리포는 contentscoin/linkbio 가 맞음.
 
 [2026-08-03 06:40 KST]
-- Neon DATABASE_URL 연결. drizzle-kit push는 레거시 스키마 충돌로 interactive 실패 → apply/align 스크립트로 컬럼 정렬 + social_channels 생성.
-- seed:golf `bolbanjang` 5 links, verify:db OK.
-- `npm run dev` · 공개 `/bolbanjang` 200 · MCP list_templates 8 · get/agent page links=5.
-- 보안: 채팅에 DB 비밀번호 노출됨 → Neon에서 비밀번호 로테이션 권장.
+- Neon DATABASE_URL 연결 / seed:golf / MCP agent 기본 검증.
