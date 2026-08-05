@@ -1,51 +1,10 @@
-import Link from "next/link";
-import { LogIn } from "lucide-react";
-import { Message } from "@/components/message";
-import { messageFromSearchParams } from "@/lib/messages";
-import { loginAction } from "./actions";
+import type { Metadata } from "next";
+import { LoginForm } from "@/components/login-form";
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const message = messageFromSearchParams(await searchParams);
+export const metadata: Metadata = {
+  title: "로그인 · OMO Bio",
+};
 
-  return (
-    <main className="form-page">
-      <div className="form-shell">
-        <form className="form-card" action={loginAction}>
-          <Link className="brand" href="/">
-            <span className="brand-mark" aria-hidden="true">
-              <LogIn size={18} />
-            </span>
-            <span>Login</span>
-          </Link>
-          <Message message={message} />
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <input className="input" id="email" name="email" type="email" autoComplete="email" required />
-          </div>
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input
-              className="input"
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
-          </div>
-          <button className="button primary" type="submit">
-            <LogIn size={17} />
-            Login
-          </button>
-          <p className="small muted">
-            Need a page? <Link href="/signup">Create one</Link>
-          </p>
-        </form>
-      </div>
-    </main>
-  );
+export default function LoginPage() {
+  return <LoginForm />;
 }

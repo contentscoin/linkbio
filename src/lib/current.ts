@@ -1,35 +1,28 @@
-import "server-only";
-
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { pages, users } from "@/db/schema";
-import { readSession } from "./session";
+import { getSessionUserId } from "@/lib/session";
 
-export async function getCurrentUserPage() {
-  const session = await readSession();
-  if (!session) {
-    return null;
-  }
+export async function requireUserPage() {
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login");
 
   const db = getDb();
-  const [row] = await db
-    .select({
-      user: users,
-      page: pages,
-    })
-    .from(users)
-    .innerJoin(pages, eq(pages.userId, users.id))
-    .where(eq(users.id, session.userId))
-    .limit(1);
-
-  return row ?? null;
-}
-
-export async function requireCurrentUserPage() {
-  const current = await getCurrentUserPage();
-  if (!current) {
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user) {
     redirect("/login");
   }
-  return current;
+
+  const [page] = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.userId, user.id))
+    .limit(1);
+
+  if (!page) {
+    redirect("/signup");
+  }
+
+  return { user, page };
 }

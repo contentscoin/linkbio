@@ -1,60 +1,37 @@
-# LinkBio
+# OMO Bio (linkbio)
 
-LinkBio is a small, separate link-in-bio app backed by Postgres. It includes
-signup/login, a private admin editor, public `/{handle}` pages, Drizzle schema
-management, and an optional golf profile seed.
+멀티테넌트 링크인바이오. 계정마다 공개 페이지 `/{handle}`.
 
-## Getting Started
+## 스택
 
-Create a local environment file:
+- Next.js 16 · React 19.2.8 · Zod 4 · Drizzle · Neon Postgres · jose
 
-```powershell
-Copy-Item .env.example .env.local
-```
-
-Fill in:
-
-- `DATABASE_URL`: Neon or another Postgres connection string.
-- `SESSION_SECRET`: at least 32 random characters.
-- `NEXT_PUBLIC_SITE_URL`: `http://localhost:3000` for local development.
-
-Generate a session secret with Node:
+## 로컬
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-Run the schema and app:
-
-```bash
-npm run db:push
+cp .env.example .env.local
+npm install
 npm run dev
 ```
 
-Useful scripts:
+## 라우트
 
-- `npm run typecheck`
-- `npm run test`
-- `npm run build`
-- `npm run db:generate`
-- `npm run db:push`
-- `npm run db:studio`
-- `npm run seed:golf`
+| 경로 | 설명 |
+|------|------|
+| `/` | 랜딩 |
+| `/signup` | 가입 |
+| `/login` | 로그인 |
+| `/settings` | 계정 · MCP 연결 (API URL + 개인 토큰) |
+| `/mypage` | `/settings`로 리다이렉트 |
+| `/admin` | 편집기 |
+| `/{handle}` | 공개 페이지 |
+| `/api/v1/agent` | Agent / MCP HTTP API |
 
-The seed requires:
+## MCP
 
-```powershell
-$env:DATABASE_URL="postgresql://..."
-$env:SEED_EMAIL="you@example.com"
-$env:SEED_PASSWORD="10-character-minimum"
-$env:SEED_HANDLE="bolbanjang"
-npm run seed:golf
-```
+로그인 후 `/settings`에서 개인 토큰을 발급하고 Cursor `mcp.json`에 붙여넣습니다. 자세한 내용은 [`mcp/README.md`](mcp/README.md).
 
-Security notes:
+## 주의
 
-- Passwords are hashed with bcrypt cost 12.
-- Sessions are HS256 JWTs in HttpOnly, SameSite=Lax cookies. Production cookies are Secure.
-- Server Actions re-check authentication and ownership for mutations.
-- Link URLs allow only `http` and `https`.
-- Rate limiting is currently in-memory. Move it to Upstash Redis or Vercel KV before real traffic.
+프로덕션 `bio.omo.co.kr` 는 Vercel에서 프로모트된 OMO Bio 배포가 기준입니다.
+Git `main` 자동 배포가 켜져 있으면 머지 전에 반드시 미리보기로 대조하세요.

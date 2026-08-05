@@ -1,163 +1,89 @@
 "use server";
 
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { links, pages } from "@/db/schema";
-import { requireCurrentUserPage } from "@/lib/current";
-import { redirectWithMessage } from "@/lib/messages";
+import { requireUserPage } from "@/lib/current";
+import { logoutAction as logout } from "@/app/login/actions";
 import {
-  checkboxValue,
-  validateBio,
-  validateDisplayName,
-  validateExternalUrl,
-  validateHandle,
-  validateInitials,
-  validateLinkLabel,
-  validateSortOrder,
-  validateTheme,
-  validateUuid,
+  displayNameSchema,
+  initialsFromName,
+  urlSchema,
 } from "@/lib/validation";
 
-function adminFail(message: string): never {
-  redirect(redirectWithMessage("/admin", "error", message));
-}
-
-function adminSaved(message: string): never {
-  redirect(redirectWithMessage("/admin", "saved", message));
-}
+export { logout as logoutAction };
 
 export async function updateProfileAction(formData: FormData) {
-  const current = await requireCurrentUserPage();
-  const displayName = validateDisplayName(formData.get("displayName"));
-  if (!displayName.ok) adminFail(displayName.message);
+  const { page } = await requireUserPage();
+  const displayName = displayNameSchema.safeParse(formData.get("displayName"));
+  const bio = String(formData.get("bio") ?? "").slice(0, 280);
+  const published = formData.get("published") === "on";
 
-  const bio = validateBio(formData.get("bio"));
-  if (!bio.ok) adminFail(bio.message);
-
-  const handle = validateHandle(formData.get("handle"));
-  if (!handle.ok) adminFail(handle.message);
-
-  const initials = validateInitials(formData.get("avatarInitials"));
-  if (!initials.ok) adminFail(initials.message);
-
-  const theme = validateTheme(formData.get("theme"));
-  if (!theme.ok) adminFail(theme.message);
-
-  const db = getDb();
-
-  try {
-    await db
-      .update(pages)
-      .set({
-        handle: handle.value,
-        displayName: displayName.value,
-        bio: bio.value,
-        avatarInitials: initials.value,
-        theme: theme.value,
-        isPublished: checkboxValue(formData.get("isPublished")),
-        updatedAt: new Date(),
-      })
-      .where(and(eq(pages.id, current.page.id), eq(pages.userId, current.user.id)));
-  } catch {
-    adminFail("Could not save the profile. The handle may already be taken.");
+  if (!displayName.success) {
+    redirect("/admin?error=" + encodeURIComponent(displayName.error.issues[0]?.message ?? "이름 오류"));
   }
 
-  revalidatePath("/admin");
-  revalidatePath(`/${current.page.handle}`);
-  revalidatePath(`/${handle.value}`);
-  adminSaved("profile");
+  const db = getDb();
+  const initials = initialsFromName(displayName.data);
+  await db
+    .update(pages)
+    .set({
+      displayName: displayName.data,
+      bio,
+      avatarText: initials,
+      avatarInitials: initials,
+      published,
+      isPublished: published,
+      updatedAt: new Date(),
+    })
+    .where(eq(pages.id, page.id));
+
+  revalidatePath(`/${page.handle}`);
+  redirect("/admin?saved=1");
 }
 
 export async function createLinkAction(formData: FormData) {
-  const current = await requireCurrentUserPage();
-  const label = validateLinkLabel(formData.get("label"));
-  if (!label.ok) adminFail(label.message);
+  const { page } = await requireUserPage();
+  const label = String(formData.get("label") ?? "").trim().slice(0, 80);
+  const url = urlSchema.safeParse(formData.get("url"));
 
-  const url = validateExternalUrl(formData.get("url"));
-  if (!url.ok) adminFail(url.message);
-
-  const db = getDb();
-  const [lastLink] = await db
-    .select({ sortOrder: links.sortOrder })
-    .from(links)
-    .where(eq(links.pageId, current.page.id))
-    .orderBy(desc(links.sortOrder))
-    .limit(1);
-
-  await db.insert(links).values({
-    pageId: current.page.id,
-    label: label.value,
-    url: url.value,
-    sortOrder: (lastLink?.sortOrder ?? -1) + 1,
-  });
-
-  revalidatePath("/admin");
-  revalidatePath(`/${current.page.handle}`);
-  adminSaved("link");
-}
-
-async function findOwnedLink(userId: string, linkId: string) {
-  const db = getDb();
-  const [row] = await db
-    .select({ id: links.id, pageId: links.pageId })
-    .from(links)
-    .innerJoin(pages, eq(links.pageId, pages.id))
-    .where(and(eq(links.id, linkId), eq(pages.userId, userId)))
-    .orderBy(asc(links.sortOrder))
-    .limit(1);
-  return row ?? null;
-}
-
-export async function updateLinkAction(formData: FormData) {
-  const current = await requireCurrentUserPage();
-  const linkId = validateUuid(formData.get("linkId"));
-  if (!linkId.ok) adminFail(linkId.message);
-
-  const label = validateLinkLabel(formData.get("label"));
-  if (!label.ok) adminFail(label.message);
-
-  const url = validateExternalUrl(formData.get("url"));
-  if (!url.ok) adminFail(url.message);
-
-  const sortOrder = validateSortOrder(formData.get("sortOrder"));
-  if (!sortOrder.ok) adminFail(sortOrder.message);
-
-  const ownedLink = await findOwnedLink(current.user.id, linkId.value);
-  if (!ownedLink) {
-    adminFail("Link not found.");
+  if (!label) {
+    redirect("/admin?error=" + encodeURIComponent("버튼 제목을 입력하세요."));
+  }
+  if (!url.success) {
+    redirect("/admin?error=" + encodeURIComponent(url.error.issues[0]?.message ?? "URL 오류"));
   }
 
-  await getDb()
-    .update(links)
-    .set({
-      label: label.value,
-      url: url.value,
-      sortOrder: sortOrder.value,
-      isVisible: checkboxValue(formData.get("isVisible")),
-      updatedAt: new Date(),
-    })
-    .where(eq(links.id, ownedLink.id));
+  const db = getDb();
+  const existing = await db.select().from(links).where(eq(links.pageId, page.id));
+  const sortOrder = existing.length;
 
-  revalidatePath("/admin");
-  revalidatePath(`/${current.page.handle}`);
-  adminSaved("link");
+  await db.insert(links).values({
+    pageId: page.id,
+    label,
+    url: url.data,
+    sortOrder,
+    position: sortOrder,
+    visible: true,
+    isVisible: true,
+  });
+
+  revalidatePath(`/${page.handle}`);
+  redirect("/admin?saved=1");
 }
 
 export async function deleteLinkAction(formData: FormData) {
-  const current = await requireCurrentUserPage();
-  const linkId = validateUuid(formData.get("linkId"));
-  if (!linkId.ok) adminFail(linkId.message);
+  const { page } = await requireUserPage();
+  const linkId = String(formData.get("linkId") ?? "");
+  if (!linkId) redirect("/admin");
 
-  const ownedLink = await findOwnedLink(current.user.id, linkId.value);
-  if (!ownedLink) {
-    adminFail("Link not found.");
-  }
+  const db = getDb();
+  await db
+    .delete(links)
+    .where(and(eq(links.id, linkId), eq(links.pageId, page.id)));
 
-  await getDb().delete(links).where(eq(links.id, ownedLink.id));
-
-  revalidatePath("/admin");
-  revalidatePath(`/${current.page.handle}`);
-  adminSaved("link");
+  revalidatePath(`/${page.handle}`);
+  redirect("/admin?saved=1");
 }

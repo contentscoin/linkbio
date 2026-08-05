@@ -2,37 +2,34 @@
   "name": "linkbio",
   "version": "0.1.0",
   "private": true,
+  "description": "Multi-tenant link-in-bio service. Each account gets its own public page at /{handle}.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/validation.test.ts tests/seed-config.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "seed:golf": "tsx scripts/seed-golf.ts"
+    "seed:golf": "node scripts/seed-golf.mjs",
+    "mcp": "node mcp/server.mjs"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.1.0",
-    "bcryptjs": "^3.0.3",
-    "drizzle-orm": "^0.45.2",
-    "jose": "^6.2.5",
-    "lucide-react": "^1.28.0",
+    "@modelcontextprotocol/sdk": "1.25.2",
+    "@neondatabase/serverless": "1.1.0",
+    "bcryptjs": "3.0.3",
+    "drizzle-orm": "0.45.2",
+    "jose": "6.2.5",
     "next": "16.2.12",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "server-only": "^0.0.1"
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "drizzle-kit": "^0.31.10",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.12",
-    "tsx": "^4.23.1",
-    "typescript": "^5"
+    "@types/node": "26.1.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "drizzle-kit": "0.31.10",
+    "typescript": "6.0.3"
   }
 }

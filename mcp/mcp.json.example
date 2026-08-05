@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "omo-bio": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/absolute/path/to/linkbio/mcp/run.mjs"],
+      "env": {
+        "LINKBIO_BASE_URL": "https://bio.omo.co.kr",
+        "MCP_API_KEY": "lbmcp_…personal-token-from-/settings"
+      }
+    }
+  }
+}
