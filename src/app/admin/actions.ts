@@ -7,8 +7,8 @@ import { getDb } from "@/db";
 import { links, pages } from "@/db/schema";
 import { requireUserPage } from "@/lib/current";
 import { logoutAction as logout } from "@/app/login/actions";
+import { applyDesignTemplateToPage } from "@/lib/apply-design-template";
 import {
-  applyTemplateToDesign,
   getDesignTemplate,
   THEME_OPTIONS,
 } from "@/lib/design-templates";
@@ -65,44 +65,20 @@ export async function updateProfileAction(formData: FormData) {
   redirect("/admin?saved=profile");
 }
 
+/** Kept for MCP/compat; admin UI posts to `/api/admin/apply-template`. */
 export async function applyDesignTemplateAction(formData: FormData) {
   const { page } = await requireUserPage();
   const templateId = String(formData.get("templateId") ?? "").trim();
-  const template = getDesignTemplate(templateId);
-  if (!template) {
-    adminError("디자인 템플릿을 선택하세요.");
-  }
-
-  const current = parsePageDesign(page.design);
-  const design = parsePageDesign(
-    applyTemplateToDesign(template, {
-      keepAvatar: true,
-      keepBackground: true,
-      current,
-    }),
-  );
-  // Preserve wizard progress if any.
-  if (current.wizard) {
-    design.wizard = current.wizard;
-  }
   const accentOverride = String(formData.get("accent") ?? "").trim();
-
-  try {
-    await getDb()
-      .update(pages)
-      .set({
-        theme: template.theme,
-        accent: (accentOverride || template.accent).slice(0, 32),
-        design,
-        updatedAt: new Date(),
-      })
-      .where(eq(pages.id, page.id));
-  } catch (error) {
-    console.error("applyDesignTemplateAction failed", error);
-    adminError("템플릿 적용에 실패했습니다. 잠시 후 다시 시도하세요.");
+  const result = await applyDesignTemplateToPage(
+    page,
+    templateId,
+    accentOverride,
+  );
+  if (!result.ok) {
+    adminError(result.error);
   }
-
-  revalidatePage(page.handle);
+  revalidatePage(result.handle);
   redirect("/admin?saved=design");
 }
 

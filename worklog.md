@@ -50,3 +50,15 @@
 - 사용자: 템플릿 적용 시 에러.
 - 원인: TemplatePicker 카테고리 필터가 선택 라디오를 unmount → templateId 미제출 → "디자인 템플릿을 선택하세요."
 - 수정: controlled selection + 카테고리 변경 시 첫 템플릿 자동 선택, apply 액션 방어 강화.
+
+
+[2026-08-06 09:41 KST]
+- 사용자: 템플릿 적용이 여전히 깨짐.
+- 재현: 프로덕션 `/admin`에서 템플릿 적용 시 `UnrecognizedActionError` (Server Action ID 불일치 / 배포 후 구 클라이언트) + POST `/admin` 404. 페이지가 "This page couldn't load"로 붕괴.
+- 수정: 템플릿 적용을 Server Action 대신 `POST /api/admin/apply-template` 폼 제출로 전환(액션 ID 회전 회피). `templateId`는 hidden input으로 항상 전송. 나머지 admin 폼은 `SafeActionForm`으로 UnrecognizedActionError 시 자동 새로고침.
+
+
+[2026-08-06 10:46 KST]
+- 사용자: 로그인 실패 + 프로덕션 배포 요청.
+- 원인 추정: 템플릿과 동일하게 Server Action ID 불일치로 loginAction 실패.
+- 수정: 로그인폼을 `POST /api/auth/login` 일반 폼으로 전환. PR #13에 포함 후 main 머지·프로덕션 배포.

@@ -1,15 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef, useState } from "react";
-import { loginAction, type LoginState } from "@/app/login/actions";
+import { useEffect, useRef, useState } from "react";
 
-const initialState: LoginState = {};
-
-export function LoginForm() {
-  const [state, formAction, pending] = useActionState(loginAction, initialState);
+export function LoginForm({ error }: { error?: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [pending, setPending] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -17,10 +14,17 @@ export function LoginForm() {
   }, []);
 
   const canSubmit = email.trim().length > 0 && password.length > 0;
-  const fieldError = state.errors?.email ?? state.errors?.password ?? "";
 
   return (
-    <form action={formAction} className="auth" noValidate>
+    <form
+      action="/api/auth/login"
+      method="post"
+      className="auth"
+      noValidate
+      onSubmit={() => {
+        if (canSubmit) setPending(true);
+      }}
+    >
       <div className="auth-top">
         <Link className="auth-back" href="/" aria-label="처음으로">
           ‹
@@ -34,9 +38,9 @@ export function LoginForm() {
         <h1 className="auth-title">다시 오셨네요</h1>
         <p className="auth-sub">이메일과 비밀번호를 입력하세요.</p>
 
-        {state.message ? (
+        {error ? (
           <p className="auth-notice" role="alert">
-            {state.message}
+            {error}
           </p>
         ) : null}
 
@@ -54,7 +58,8 @@ export function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             maxLength={254}
             aria-label="이메일"
-            aria-invalid={Boolean(state.errors?.email || state.message)}
+            aria-invalid={Boolean(error)}
+            required
           />
         </div>
 
@@ -68,11 +73,10 @@ export function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             aria-label="비밀번호"
-            aria-invalid={Boolean(state.errors?.password || state.message)}
+            aria-invalid={Boolean(error)}
+            required
           />
         </div>
-
-        {fieldError ? <p className="auth-hint auth-hint--err">{fieldError}</p> : null}
       </div>
 
       <div className="auth-foot">
