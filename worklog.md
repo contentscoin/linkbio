@@ -112,3 +112,7 @@
 - 렌더러: page-root 포함 안정적 data-role, CTA 구분선/원형 화살표, customCss는 page-root 기준.
 - DB migrate-link-icons.mjs 컬럼 추가 실행. MCP 0.5.0 upsert_link/update_design/capabilities 확장.
 - /fmg 콘텐츠는 미적용(MCP 설정은 사용자). typecheck/build OK.
+
+[2026-08-06 22:03 KST]
+- PR #17 main 머지·프로덕션 배포 완료 (`7ca9f23`).
+- 라이브 `bio.omo.co.kr`에서 `data-role=page-root` 및 CTA/arrow data-* 확인.
