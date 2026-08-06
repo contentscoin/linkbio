@@ -34,8 +34,8 @@
 .bio-link[data-span="2"],.bio-link[data-span="3"],.bio-link[data-variant=full]:not([data-span="1"]){grid-column:1/-1}
 .bio-link[data-span="1"]{grid-column:span 1}
 .bio-links>.bio-link{min-width:0;height:100%}
-.bio-link[data-role=cta-card]:not([data-span="1"]){grid-column:1/-1}
-.bio-link[data-role=cta-card][data-span="1"]{grid-column:span 1}
+.bio-link[data-role=cta-card]{grid-column:1/-1}
+.bio-link[data-role=cta-card][data-force-span="1"]{grid-column:span 1}
 .bio-links[data-columns]{align-items:stretch}
 .bio-links[data-columns]{gap:var(--section-row-gap,var(--section-gap,var(--gap))) var(--section-col-gap,var(--section-gap,var(--gap)))}
 .bio-link[data-row-span="2"]{grid-row:span 2}
