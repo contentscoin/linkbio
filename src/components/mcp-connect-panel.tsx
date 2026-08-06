@@ -281,33 +281,41 @@ export function McpConnectPanel({
         </li>
         <li>
           디자인 변경:{" "}
-          <code>list_design_templates</code> →{" "}
-          <code>apply_design_template</code> /{" "}
-          <code>set_avatar_image</code> / <code>set_custom_css</code>
+          <code>list_design_capabilities</code> →{" "}
+          <code>update_design</code> / <code>upsert_section</code> /{" "}
+          <code>upsert_link</code> (부분 수정) /{" "}
+          <code>get_preview_url</code>
         </li>
       </ol>
 
       <h3 className="mcp-guide-title">주요 도구</h3>
       <ul className="mcp-tool-list">
         <li>
+          <code>list_design_capabilities</code> — 편집 가능 필드·아이콘·레시피
+        </li>
+        <li>
+          <code>update_design</code> / <code>upsert_section</code> — 색·헤드라인·통계바·섹션
+        </li>
+        <li>
+          <code>upsert_link</code> — 링크 생성/부분 수정 (iconKey·badge·span·featured)
+        </li>
+        <li>
+          <code>get_preview_url</code> — 공개 URL 확인
+        </li>
+        <li>
+          <code>list_design_templates</code> /{" "}
+          <code>apply_design_template</code> — 템플릿
+        </li>
+        <li>
           <code>start_profile_wizard</code> /{" "}
           <code>answer_profile_wizard</code> — 질의응답 프로필 완성
         </li>
         <li>
-          <code>list_design_templates</code> /{" "}
-          <code>apply_design_template</code> — 디자인 템플릿
-        </li>
-        <li>
           <code>set_avatar_image</code> /{" "}
-          <code>set_background_image</code> — 이미지 삽입
+          <code>set_background_image</code> / <code>set_custom_css</code>
         </li>
         <li>
-          <code>set_custom_css</code> / <code>update_design</code> — CSS·레이아웃
-          변형
-        </li>
-        <li>
-          <code>get_page</code> / <code>update_profile</code> /{" "}
-          <code>upsert_link</code> — 기본 편집
+          <code>get_page</code> / <code>update_profile</code> — 조회·프로필
         </li>
       </ul>
 
