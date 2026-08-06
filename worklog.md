@@ -116,3 +116,7 @@
 [2026-08-06 22:03 KST]
 - PR #17 main 머지·프로덕션 배포 완료 (`7ca9f23`).
 - 라이브 `bio.omo.co.kr`에서 `data-role=page-root` 및 CTA/arrow data-* 확인.
+
+[2026-08-06 22:10 KST]
+- 메인 랜딩(`/`) 하단 omo.co.kr 홍보 배너 추가.
+- Bioomo 무료·MCP로 수정/디자인 고도화 가능 안내 문구 반영.

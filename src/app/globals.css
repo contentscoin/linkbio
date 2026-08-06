@@ -187,3 +187,17 @@
 .btn-swatch--elevated{background:#fff;box-shadow:0 8px 18px #16281d1a}
 .btn-swatch--sticker{background:#fff;border:2px solid #16281d;box-shadow:3px 3px 0 #16281d}
 .pick--button{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+
+/* Landing — OMO promo banner */
+.omo-promo{display:flex;align-items:center;gap:14px;margin-top:28px;padding:16px 18px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(135deg,#f1f8f3 0%,#e8f3ec 55%,#dff0e8 100%);color:var(--ink);text-decoration:none;box-shadow:var(--shadow-sm);transition:transform .16s,box-shadow .16s,border-color .16s}
+.omo-promo:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--green-bright)}
+.omo-promo:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.omo-promo-brand{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--green);color:#fff;font-size:13px;font-weight:900;letter-spacing:-.02em}
+.omo-promo-body{flex:auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.omo-promo-body strong{font-size:14.5px;font-weight:800;letter-spacing:-.01em;line-height:1.35}
+.omo-promo-body>span{color:var(--ink-soft);font-size:12.5px;line-height:1.5}
+.omo-promo-cta{flex:none;color:var(--green);font-size:12.5px;font-weight:800;white-space:nowrap}
+@media (max-width:480px){
+  .omo-promo{align-items:flex-start;flex-wrap:wrap}
+  .omo-promo-cta{width:100%;margin-top:2px}
+}

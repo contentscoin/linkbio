@@ -39,6 +39,10 @@ export default function HomePage() {
             모바일에서 먼저 보이게 만들었습니다. SNS 유입은 대부분 휴대폰입니다.
           </li>
           <li>공개 여부를 끄면 준비하는 동안 아무에게도 안 보입니다.</li>
+          <li>
+            Bioomo는 무료입니다. MCP로 링크·문구를 수정하고 디자인까지 고도화할 수
+            있습니다.
+          </li>
         </ul>
       </div>
 
@@ -53,7 +57,27 @@ export default function HomePage() {
 
       <p className="foot">
         만든 페이지 예시가 궁금하면 가입 후 편집기에서 바로 미리볼 수 있습니다.
+        MCP 연결은 가입 후 설정에서 안내합니다.
       </p>
+
+      <a
+        className="omo-promo"
+        href="https://omo.co.kr"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span className="omo-promo-brand">OMO</span>
+        <span className="omo-promo-body">
+          <strong>텔레그램 실무 비서, 월 10만원</strong>
+          <span>
+            Bioomo를 만든 오모(OMO) — 대화로 업무를 맡기는 AI 오퍼레이터를
+            만나보세요.
+          </span>
+        </span>
+        <span className="omo-promo-cta" aria-hidden="true">
+          omo.co.kr →
+        </span>
+      </a>
     </main>
   );
 }
