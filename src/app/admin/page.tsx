@@ -4,12 +4,12 @@ import { getDb } from "@/db";
 import { links } from "@/db/schema";
 import { AccentField } from "@/components/accent-field";
 import { ButtonDesignPanel } from "@/components/button-design-panel";
-import { TemplatePicker } from "@/components/template-picker";
+import { SafeActionForm } from "@/components/safe-action-form";
+import { TemplateApplyForm } from "@/components/template-apply-form";
 import { requireUserPage } from "@/lib/current";
 import { DESIGN_TEMPLATES, THEME_OPTIONS } from "@/lib/design-templates";
 import { parsePageDesign } from "@/lib/page-design";
 import {
-  applyDesignTemplateAction,
   createLinkAction,
   deleteLinkAction,
   logoutAction,
@@ -132,12 +132,7 @@ export default async function AdminPage({
           링크스토리처럼 업종별 템플릿으로 테마·버튼·레이아웃을 한 번에
           적용합니다.
         </p>
-        <form action={applyDesignTemplateAction}>
-          <TemplatePicker currentTemplateId={currentTemplateId} />
-          <button className="btn btn--primary" type="submit">
-            템플릿 적용
-          </button>
-        </form>
+        <TemplateApplyForm currentTemplateId={currentTemplateId} />
       </section>
 
       <section className="panel">
@@ -145,7 +140,7 @@ export default async function AdminPage({
         <p className="lede" style={{ marginBottom: 16 }}>
           스타일·모양·그림자·호버·색상을 링크스토리식 꾸미기로 조정합니다.
         </p>
-        <form action={updateDesignAction}>
+        <SafeActionForm action={updateDesignAction}>
           <input type="hidden" name="theme" value={currentTheme} />
           <input type="hidden" name="accent" value={currentAccent} />
           <input type="hidden" name="layout" value={design.layout || "stack"} />
@@ -192,7 +187,7 @@ export default async function AdminPage({
           <button className="btn btn--primary" type="submit">
             버튼 디자인 저장
           </button>
-        </form>
+        </SafeActionForm>
       </section>
 
       <section className="panel">
@@ -200,7 +195,7 @@ export default async function AdminPage({
         <p className="lede" style={{ marginBottom: 16 }}>
           페이지 테마, 포인트 컬러, 레이아웃, 배경 이미지, CSS를 조정합니다.
         </p>
-        <form action={updateDesignAction}>
+        <SafeActionForm action={updateDesignAction}>
           <input
             type="hidden"
             name="buttonStyle"
@@ -396,7 +391,7 @@ export default async function AdminPage({
           <button className="btn btn--primary" type="submit">
             테마 · 꾸미기 저장
           </button>
-        </form>
+        </SafeActionForm>
       </section>
 
       <section className="panel">
@@ -404,7 +399,7 @@ export default async function AdminPage({
         <p className="lede" style={{ marginBottom: 16 }}>
           로그인: {user.email} · 주소: /{page.handle}
         </p>
-        <form action={updateProfileAction}>
+        <SafeActionForm action={updateProfileAction}>
           <div className="field">
             <label htmlFor="displayName">표시 이름</label>
             <input
@@ -432,7 +427,7 @@ export default async function AdminPage({
           <button className="btn btn--primary" type="submit">
             프로필 저장
           </button>
-        </form>
+        </SafeActionForm>
       </section>
 
       <section className="panel">
@@ -462,17 +457,17 @@ export default async function AdminPage({
                   {link.url}
                 </span>
               </div>
-              <form action={deleteLinkAction}>
+              <SafeActionForm action={deleteLinkAction}>
                 <input type="hidden" name="linkId" value={link.id} />
                 <button className="btn" type="submit">
                   삭제
                 </button>
-              </form>
+              </SafeActionForm>
             </li>
           ))}
         </ul>
 
-        <form action={createLinkAction}>
+        <SafeActionForm action={createLinkAction}>
           <div className="field">
             <label htmlFor="label">버튼 제목</label>
             <input id="label" name="label" type="text" required />
@@ -490,7 +485,7 @@ export default async function AdminPage({
           <button className="btn btn--primary" type="submit">
             링크 추가
           </button>
-        </form>
+        </SafeActionForm>
       </section>
     </main>
   );

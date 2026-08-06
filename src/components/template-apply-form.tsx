@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
   DESIGN_TEMPLATES,
   TEMPLATE_CATEGORIES,
@@ -13,7 +13,7 @@ function templatesFor(category: TemplateCategory | "all") {
   return DESIGN_TEMPLATES.filter((t) => t.category === category);
 }
 
-export function TemplatePicker({
+export function TemplateApplyForm({
   currentTemplateId,
 }: {
   currentTemplateId: string;
@@ -24,6 +24,8 @@ export function TemplatePicker({
     "fairway";
   const [category, setCategory] = useState<TemplateCategory | "all">("all");
   const [selectedId, setSelectedId] = useState(initial);
+  const [pending, setPending] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const templates = useMemo(() => templatesFor(category), [category]);
 
@@ -36,8 +38,25 @@ export function TemplatePicker({
     }
   }
 
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    setNotice(null);
+    if (!selectedId) {
+      event.preventDefault();
+      setNotice("디자인 템플릿을 선택하세요.");
+      return;
+    }
+    setPending(true);
+  }
+
   return (
-    <div>
+    <form
+      action="/api/admin/apply-template"
+      method="post"
+      onSubmit={onSubmit}
+    >
+      {/* Authoritative value — radios are UI-only (no name). */}
+      <input type="hidden" name="templateId" value={selectedId} />
+
       <div className="seg" style={{ marginBottom: 14 }}>
         {TEMPLATE_CATEGORIES.map((cat) => (
           <button
@@ -51,14 +70,13 @@ export function TemplatePicker({
           </button>
         ))}
       </div>
-      <div className="pick">
+
+      <div className="pick" role="radiogroup" aria-label="디자인 템플릿">
         {templates.map((template) => (
           <label key={template.id}>
             <input
               className="pick-input"
               type="radio"
-              name="templateId"
-              value={template.id}
               checked={template.id === selectedId}
               onChange={() => setSelectedId(template.id)}
             />
@@ -91,6 +109,7 @@ export function TemplatePicker({
           </label>
         ))}
       </div>
+
       {templates.length === 0 ? (
         <p className="hint">이 카테고리에 템플릿이 없습니다.</p>
       ) : (
@@ -100,6 +119,16 @@ export function TemplatePicker({
             selectedId}
         </p>
       )}
-    </div>
+
+      {notice ? <div className="auth-notice">{notice}</div> : null}
+
+      <button
+        className="btn btn--primary"
+        type="submit"
+        disabled={pending || !selectedId}
+      >
+        {pending ? "적용 중…" : "템플릿 적용"}
+      </button>
+    </form>
   );
 }
