@@ -42,6 +42,9 @@ export function summarizePageBundle(page: Page, pageLinks: Link[]) {
       variant: link.variant,
       section: link.section || undefined,
       groupId: link.section || undefined,
+      iconKey: link.iconKey || undefined,
+      iconUrl: link.iconUrl || undefined,
+      badge: link.badge || undefined,
     })),
   };
 }

@@ -75,3 +75,12 @@
 - 캡처: `/opt/cursor/artifacts/screenshots/fmg-top.webp`, `fmg-bottom.webp` (라임 CTA / 네이비 2열 / 1열 보조 링크 확인).
 - P0 구현: featuredFill·tokens·sections·data-* 선택자, upsert_link(sortOrder/span/variant/section), upsert_section, get_preview_url.
 - `/fmg` DB를 네이티브 tokens/sections로 이전(커스텀 CSS는 호버·높이만 유지).
+
+[2026-08-06 16:08 KST]
+- 사용자: 「기능개발해」 → P1 목업형 디자인 기능 구현 (PR #14 브랜치).
+- 추가: link `iconKey`/`iconUrl`/`badge`, design `proofItems`/`logoUrl`/`headline`/`headlineHighlight`/`headerAlign`/`heroGraphic`.
+- 공개 페이지: 로고·강조 헤드라인·골프 히어로·통계바·아이콘/배지/spotlight 카드 렌더 + CSS.
+- MCP: `upsert_link`·`update_design` 확장, page-bundle 요약 필드 반영.
+- DB: `scripts/migrate-link-icons.mjs` 실행 (icon_key/icon_url/badge).
+- `/fmg`에 네이티브 P1 데이터 적용(아이콘·배지·proof·headline). customCss는 배포 전 라이브 폴백으로 유지.
+- 검증: typecheck OK, build OK.

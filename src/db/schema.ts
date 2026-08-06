@@ -80,6 +80,9 @@ export const links = pgTable("links", {
   size: text("size").default("auto").notNull(),
   span: integer("span").default(1).notNull(),
   variant: text("variant").default("line").notNull(),
+  iconKey: text("icon_key").default("").notNull(),
+  iconUrl: text("icon_url").default("").notNull(),
+  badge: text("badge").default("").notNull(),
   clickCount: integer("click_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()

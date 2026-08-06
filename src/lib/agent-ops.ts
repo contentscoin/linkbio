@@ -13,6 +13,7 @@ import {
   getPageLinks,
   summarizePageBundle,
 } from "@/lib/page-bundle";
+import { coerceIconKey } from "@/lib/link-icons";
 import {
   mergePageDesign,
   parseDesignSection,
@@ -230,6 +231,27 @@ export async function agentUpsertLink(
   if (typeof section === "string") {
     patch.section = section.trim().slice(0, 64);
   }
+  if (body.iconKey !== undefined) {
+    patch.iconKey =
+      body.iconKey === null ? "" : coerceIconKey(body.iconKey);
+  }
+  if (body.iconUrl !== undefined) {
+    if (body.iconUrl === null || body.iconUrl === "") {
+      patch.iconUrl = "";
+    } else if (typeof body.iconUrl === "string") {
+      const safe = sanitizeHttpsUrl(body.iconUrl);
+      if (!safe) return err("iconUrl은 https URL이어야 합니다.");
+      patch.iconUrl = safe;
+    }
+  }
+  if (body.badge !== undefined) {
+    patch.badge =
+      body.badge === null
+        ? ""
+        : typeof body.badge === "string"
+          ? body.badge.trim().slice(0, 24)
+          : "";
+  }
 
   if (typeof body.linkId === "string" && body.linkId) {
     await db
@@ -260,6 +282,9 @@ export async function agentUpsertLink(
       span: typeof patch.span === "number" ? patch.span : 1,
       variant: typeof patch.variant === "string" ? patch.variant : "line",
       section: typeof patch.section === "string" ? patch.section : "",
+      iconKey: typeof patch.iconKey === "string" ? patch.iconKey : "",
+      iconUrl: typeof patch.iconUrl === "string" ? patch.iconUrl : "",
+      badge: typeof patch.badge === "string" ? patch.badge : "",
     });
   }
 
@@ -683,6 +708,32 @@ export async function agentUpdateDesign(
   if (Array.isArray(body.sections)) {
     patch.sections = body.sections as PageDesign["sections"];
   }
+  if (Array.isArray(body.proofItems)) {
+    patch.proofItems = body.proofItems as PageDesign["proofItems"];
+  } else if (body.proofItems === null) {
+    patch.proofItems = [];
+  }
+  if (typeof body.logoUrl === "string") {
+    patch.logoUrl = body.logoUrl;
+  } else if (body.logoUrl === null) {
+    patch.logoUrl = undefined;
+  }
+  if (typeof body.headline === "string") {
+    patch.headline = body.headline;
+  } else if (body.headline === null) {
+    patch.headline = undefined;
+  }
+  if (typeof body.headlineHighlight === "string") {
+    patch.headlineHighlight = body.headlineHighlight;
+  } else if (body.headlineHighlight === null) {
+    patch.headlineHighlight = undefined;
+  }
+  if (typeof body.headerAlign === "string") {
+    patch.headerAlign = body.headerAlign as PageDesign["headerAlign"];
+  }
+  if (typeof body.heroGraphic === "string") {
+    patch.heroGraphic = body.heroGraphic as PageDesign["heroGraphic"];
+  }
 
   let design: PageDesign;
   try {
@@ -693,6 +744,16 @@ export async function agentUpdateDesign(
     if (patch.sections) {
       design.sections = parsePageDesign({ sections: patch.sections }).sections;
     }
+    if (patch.proofItems) {
+      design.proofItems = parsePageDesign({
+        proofItems: patch.proofItems,
+      }).proofItems;
+    } else if (body.proofItems === null) {
+      delete design.proofItems;
+    }
+    if (body.logoUrl === null) delete design.logoUrl;
+    if (body.headline === null) delete design.headline;
+    if (body.headlineHighlight === null) delete design.headlineHighlight;
   } catch (e) {
     return err(e instanceof Error ? e.message : "Invalid design.");
   }

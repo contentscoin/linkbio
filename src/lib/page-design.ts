@@ -75,6 +75,14 @@ export type DesignSection = {
   items?: string[];
 };
 
+export type ProofItem = {
+  value: string;
+  label: string;
+};
+
+export type HeaderAlign = "center" | "left";
+export type HeroGraphic = "none" | "golf";
+
 export type PageDesign = {
   templateId?: string;
   layout?: BioLayout;
@@ -97,6 +105,15 @@ export type PageDesign = {
   featuredBorder?: string;
   tokens?: DesignTokens;
   sections?: DesignSection[];
+  proofItems?: ProofItem[];
+  /** Brand wordmark / logo image (https) — separate from avatar */
+  logoUrl?: string;
+  /** Optional display headline (falls back to page.bio first line) */
+  headline?: string;
+  /** Substring inside headline to accent-color highlight */
+  headlineHighlight?: string;
+  headerAlign?: HeaderAlign;
+  heroGraphic?: HeroGraphic;
   showHandle?: boolean;
   showAvatar?: boolean;
   size?: BioSize;
@@ -358,6 +375,29 @@ export function parsePageDesign(raw: unknown): PageDesign {
     sanitizeCssColor(asString(data.featuredText)) || tokens?.featuredText;
   const featuredBorder = sanitizeCssColor(asString(data.featuredBorder));
 
+  const proofItems: ProofItem[] = [];
+  if (Array.isArray(data.proofItems)) {
+    for (const raw of data.proofItems.slice(0, 6)) {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+      const row = raw as Record<string, unknown>;
+      const value = asString(row.value).slice(0, 32);
+      const label = asString(row.label).slice(0, 48);
+      if (!value && !label) continue;
+      proofItems.push({ value: value || label, label: label || value });
+    }
+  }
+
+  const headerAlignRaw = asString(data.headerAlign);
+  const headerAlign: HeaderAlign | undefined =
+    headerAlignRaw === "left" || headerAlignRaw === "center"
+      ? headerAlignRaw
+      : undefined;
+  const heroGraphicRaw = asString(data.heroGraphic);
+  const heroGraphic: HeroGraphic | undefined =
+    heroGraphicRaw === "golf" || heroGraphicRaw === "none"
+      ? heroGraphicRaw
+      : undefined;
+
   return {
     templateId: asString(data.templateId).slice(0, 64) || undefined,
     layout: pickEnum(data.layout, LAYOUTS),
@@ -375,6 +415,13 @@ export function parsePageDesign(raw: unknown): PageDesign {
     featuredBorder,
     tokens: hasToken ? tokens : undefined,
     sections: sections.length > 0 ? sections : undefined,
+    proofItems: proofItems.length > 0 ? proofItems : undefined,
+    logoUrl: sanitizeHttpsUrl(asString(data.logoUrl)),
+    headline: asString(data.headline).slice(0, 160) || undefined,
+    headlineHighlight:
+      asString(data.headlineHighlight).slice(0, 80) || undefined,
+    headerAlign,
+    heroGraphic,
     showHandle: data.showHandle === false ? false : undefined,
     showAvatar: data.showAvatar === false ? false : undefined,
     size: pickEnum(data.size, SIZES),
@@ -470,6 +517,14 @@ export function designAttrs(design: PageDesign) {
     featuredBorder: design.featuredBorder || tokens?.borderColor,
     tokens,
     sections: design.sections,
+    proofItems: design.proofItems,
+    logoUrl: design.logoUrl,
+    headline: design.headline,
+    headlineHighlight: design.headlineHighlight,
+    headerAlign: design.headerAlign || "center",
+    heroGraphic: design.heroGraphic && design.heroGraphic !== "none"
+      ? design.heroGraphic
+      : undefined,
     showHandle: design.showHandle !== false,
     showAvatar: design.showAvatar !== false,
     size: design.size,

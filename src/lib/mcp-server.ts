@@ -93,6 +93,23 @@ export function createOmoBioMcpServer(
         variant: z.string().optional(),
         section: z.string().optional().describe("섹션/그룹 id"),
         groupId: z.string().optional().describe("section 별칭"),
+        iconKey: z
+          .string()
+          .nullable()
+          .optional()
+          .describe(
+            "내장 아이콘: chat|kakao|golf|ball|members|flag|ads|chart|building|home|portfolio|arrow",
+          ),
+        iconUrl: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("커스텀 아이콘 https URL (iconKey보다 우선)"),
+        badge: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("카드 배지 텍스트, 예: 대표 서비스"),
       },
     },
     async (args) =>
@@ -291,7 +308,7 @@ export function createOmoBioMcpServer(
     {
       title: "디자인 세부 수정",
       description:
-        "layout/버튼/CTA(featuredFill)/tokens/sections 등 디자인 필드를 수정합니다. buttonFill은 일반 카드만, featuredFill은 CTA만 적용됩니다.",
+        "layout/버튼/CTA(featuredFill)/tokens/sections/proofItems/logo/headline 등 디자인 필드를 수정합니다. buttonFill은 일반 카드만, featuredFill은 CTA만 적용됩니다.",
       inputSchema: {
         handle: defaultHandle,
         theme: z.string().optional(),
@@ -339,6 +356,29 @@ export function createOmoBioMcpServer(
             }),
           )
           .optional(),
+        proofItems: z
+          .array(
+            z.object({
+              value: z.string(),
+              label: z.string(),
+            }),
+          )
+          .nullable()
+          .optional()
+          .describe("헤더 통계 바. null이면 제거"),
+        logoUrl: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("브랜드 로고 https URL. null이면 제거"),
+        headline: z.string().nullable().optional(),
+        headlineHighlight: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("headline 안에서 accent로 강조할 부분 문자열"),
+        headerAlign: z.enum(["center", "left"]).optional(),
+        heroGraphic: z.enum(["none", "golf"]).optional(),
       },
     },
     async (args) =>
