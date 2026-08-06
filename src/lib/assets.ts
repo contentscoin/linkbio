@@ -18,12 +18,86 @@ export type UploadedAsset = {
   url: string;
   mimeType: string;
   byteSize: number;
+  width?: number;
+  height?: number;
 };
 
 function normalizeMime(mime: string) {
   const m = mime.trim().toLowerCase();
   if (m === "image/jpg") return "image/jpeg";
   return m;
+}
+
+/** Best-effort image dimension probe (png/jpeg/gif/webp/svg). */
+export function readImageDimensions(
+  buffer: Buffer,
+  mimeType: string,
+): { width?: number; height?: number } {
+  try {
+    if (mimeType === "image/png" && buffer.length >= 24) {
+      if (buffer.toString("ascii", 1, 4) === "PNG") {
+        return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+      }
+    }
+    if (mimeType === "image/gif" && buffer.length >= 10) {
+      return { width: buffer.readUInt16LE(6), height: buffer.readUInt16LE(8) };
+    }
+    if (mimeType === "image/jpeg") {
+      let i = 2;
+      while (i < buffer.length - 8) {
+        if (buffer[i] !== 0xff) break;
+        const marker = buffer[i + 1]!;
+        const len = buffer.readUInt16BE(i + 2);
+        if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8) {
+          return {
+            height: buffer.readUInt16BE(i + 5),
+            width: buffer.readUInt16BE(i + 7),
+          };
+        }
+        i += 2 + len;
+      }
+    }
+    if (mimeType === "image/webp" && buffer.length >= 30) {
+      if (buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP") {
+        const chunk = buffer.toString("ascii", 12, 16);
+        if (chunk === "VP8 " && buffer.length >= 30) {
+          return {
+            width: buffer.readUInt16LE(26) & 0x3fff,
+            height: buffer.readUInt16LE(28) & 0x3fff,
+          };
+        }
+        if (chunk === "VP8X" && buffer.length >= 30) {
+          return {
+            width: 1 + buffer.readUIntLE(24, 3),
+            height: 1 + buffer.readUIntLE(27, 3),
+          };
+        }
+      }
+    }
+    if (mimeType === "image/svg+xml") {
+      const text = buffer.toString("utf8").slice(0, 4000);
+      const vb = /viewBox\s*=\s*["']?\s*([0-9.+\-eE]+)\s+([0-9.+\-eE]+)\s+([0-9.+\-eE]+)\s+([0-9.+\-eE]+)/i.exec(
+        text,
+      );
+      if (vb) {
+        return {
+          width: Math.round(Number(vb[3])),
+          height: Math.round(Number(vb[4])),
+        };
+      }
+      const w = /width\s*=\s*["']?([0-9.]+)/i.exec(text);
+      const h = /height\s*=\s*["']?([0-9.]+)/i.exec(text);
+      if (w && h) {
+        return {
+          width: Math.round(Number(w[1])),
+          height: Math.round(Number(h[1])),
+        };
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return {};
 }
 
 export function parseDataUri(input: string): {
@@ -88,11 +162,14 @@ export async function storePageAsset(input: {
     })
     .returning({ id: assets.id });
   if (!row) throw new Error("자산 저장 실패");
+  const dims = readImageDimensions(input.buffer, mimeType);
   return {
     id: row.id,
     url: assetPublicUrl(row.id),
     mimeType,
     byteSize: input.buffer.length,
+    width: dims.width,
+    height: dims.height,
   };
 }
 

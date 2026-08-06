@@ -76,6 +76,8 @@ export type DesignSection = {
   /** Link ids (preferred) or stable keys matched via link.section */
   items?: string[];
   gap?: number;
+  /** gap alias */
+  sectionGap?: number;
   rowGap?: number;
   columnGap?: number;
   mobileGap?: number;
@@ -142,6 +144,13 @@ export type PageDesign = {
   heroImageUrl?: string;
   heroGraphicSize?: number;
   heroGraphicPosition?: HeroGraphicPosition;
+  /** Page typography controls */
+  desktopFontSize?: number;
+  mobileFontSize?: number;
+  lineHeight?: number;
+  letterSpacing?: string;
+  headlineFontSize?: number;
+  headlineMobileFontSize?: number;
   showHandle?: boolean;
   showAvatar?: boolean;
   size?: BioSize;
@@ -390,9 +399,15 @@ export function parsePageDesign(raw: unknown): PageDesign {
           .map((v) => v.slice(0, 80))
           .slice(0, 48)
       : undefined;
+    const gapRaw =
+      typeof row.gap === "number"
+        ? row.gap
+        : typeof row.sectionGap === "number"
+          ? row.sectionGap
+          : undefined;
     const gap =
-      typeof row.gap === "number" && Number.isFinite(row.gap)
-        ? Math.min(48, Math.max(0, Math.floor(row.gap)))
+      typeof gapRaw === "number" && Number.isFinite(gapRaw)
+        ? Math.min(48, Math.max(0, Math.floor(gapRaw)))
         : undefined;
     const rowGap =
       typeof row.rowGap === "number" && Number.isFinite(row.rowGap)
@@ -418,6 +433,7 @@ export function parsePageDesign(raw: unknown): PageDesign {
           : undefined,
       items: items && items.length > 0 ? items : undefined,
       gap,
+      sectionGap: gap,
       rowGap,
       columnGap,
       mobileGap,
@@ -546,6 +562,34 @@ export function parsePageDesign(raw: unknown): PageDesign {
       sanitizeHttpsUrl(asString(data.heroGraphicUrl)),
     heroGraphicSize,
     heroGraphicPosition,
+    desktopFontSize:
+      typeof data.desktopFontSize === "number" &&
+      Number.isFinite(data.desktopFontSize)
+        ? Math.min(28, Math.max(12, Math.floor(data.desktopFontSize)))
+        : undefined,
+    mobileFontSize:
+      typeof data.mobileFontSize === "number" &&
+      Number.isFinite(data.mobileFontSize)
+        ? Math.min(24, Math.max(11, Math.floor(data.mobileFontSize)))
+        : undefined,
+    lineHeight:
+      typeof data.lineHeight === "number" && Number.isFinite(data.lineHeight)
+        ? Math.min(2.2, Math.max(1, Number(data.lineHeight)))
+        : undefined,
+    letterSpacing:
+      typeof data.letterSpacing === "string"
+        ? data.letterSpacing.trim().slice(0, 16) || undefined
+        : undefined,
+    headlineFontSize:
+      typeof data.headlineFontSize === "number" &&
+      Number.isFinite(data.headlineFontSize)
+        ? Math.min(48, Math.max(14, Math.floor(data.headlineFontSize)))
+        : undefined,
+    headlineMobileFontSize:
+      typeof data.headlineMobileFontSize === "number" &&
+      Number.isFinite(data.headlineMobileFontSize)
+        ? Math.min(36, Math.max(14, Math.floor(data.headlineMobileFontSize)))
+        : undefined,
     showHandle: data.showHandle === false ? false : undefined,
     showAvatar: data.showAvatar === false ? false : undefined,
     size: pickEnum(data.size, SIZES),
@@ -664,6 +708,12 @@ export function designAttrs(design: PageDesign) {
     heroImageUrl: design.heroImageUrl || design.heroGraphicUrl,
     heroGraphicSize: design.heroGraphicSize,
     heroGraphicPosition: design.heroGraphicPosition || "right",
+    desktopFontSize: design.desktopFontSize,
+    mobileFontSize: design.mobileFontSize,
+    lineHeight: design.lineHeight,
+    letterSpacing: design.letterSpacing,
+    headlineFontSize: design.headlineFontSize,
+    headlineMobileFontSize: design.headlineMobileFontSize,
     showHandle: design.showHandle !== false,
     showAvatar: design.showAvatar !== false,
     size: design.size,

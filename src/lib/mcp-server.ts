@@ -26,7 +26,7 @@ export function createOmoBioMcpServer(
 ) {
   const server = new McpServer({
     name: "omo-bio",
-    version: "0.6.0",
+    version: "0.7.0",
   });
 
   const defaultHandle =
@@ -457,17 +457,6 @@ export function createOmoBioMcpServer(
         templateId: z.string().optional(),
         showHandle: z.boolean().optional(),
         showAvatar: z.boolean().optional(),
-        tokens: z
-          .object({
-            pageBackground: z.string().optional(),
-            cardBackground: z.string().optional(),
-            cardText: z.string().optional(),
-            mutedText: z.string().optional(),
-            featuredBackground: z.string().optional(),
-            featuredText: z.string().optional(),
-            borderColor: z.string().optional(),
-          })
-          .optional(),
         sections: z
           .array(
             z.object({
@@ -478,9 +467,15 @@ export function createOmoBioMcpServer(
               layout: z.enum(["full", "grid", "stack"]).optional(),
               order: z.number().optional(),
               items: z.array(z.string()).optional(),
+              gap: z.number().min(0).max(48).optional(),
+              sectionGap: z.number().min(0).max(48).optional().describe("gap 별칭"),
+              rowGap: z.number().min(0).max(48).optional(),
+              columnGap: z.number().min(0).max(48).optional(),
+              mobileGap: z.number().min(0).max(48).optional(),
             }),
           )
-          .optional(),
+          .optional()
+          .describe("섹션 배열 — columns/items/gap"),
         proofItems: z
           .array(
             z.object({
@@ -491,6 +486,18 @@ export function createOmoBioMcpServer(
           .nullable()
           .optional()
           .describe("헤더 통계 바. null이면 제거"),
+        tokens: z
+          .object({
+            pageBackground: z.string().optional(),
+            cardBackground: z.string().optional(),
+            cardText: z.string().optional(),
+            mutedText: z.string().optional(),
+            featuredBackground: z.string().optional(),
+            featuredText: z.string().optional(),
+            borderColor: z.string().optional(),
+          })
+          .optional()
+          .describe("페이지/카드 색 토큰"),
         logoUrl: z
           .string()
           .nullable()
@@ -536,6 +543,21 @@ export function createOmoBioMcpServer(
         heroGraphicPosition: z
           .enum(["right", "left", "below", "above"])
           .optional(),
+        desktopFontSize: z
+          .number()
+          .min(12)
+          .max(28)
+          .optional()
+          .describe("카드/본문 기본 글자 px (데스크톱)"),
+        mobileFontSize: z.number().min(11).max(24).optional(),
+        lineHeight: z.number().min(1).max(2.2).optional(),
+        letterSpacing: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("예: -0.02em"),
+        headlineFontSize: z.number().min(14).max(48).optional(),
+        headlineMobileFontSize: z.number().min(14).max(36).optional(),
       },
     },
     async (args) =>
@@ -568,6 +590,12 @@ export function createOmoBioMcpServer(
         order: z.number().optional(),
         items: z.array(z.string()).optional(),
         gap: z.number().min(0).max(48).optional(),
+        sectionGap: z
+          .number()
+          .min(0)
+          .max(48)
+          .optional()
+          .describe("gap 별칭"),
         rowGap: z.number().min(0).max(48).optional(),
         columnGap: z.number().min(0).max(48).optional(),
         mobileGap: z.number().min(0).max(48).optional(),
@@ -590,7 +618,7 @@ export function createOmoBioMcpServer(
     {
       title: "이미지 업로드",
       description:
-        "dataUri/base64 이미지를 업로드하고 https URL을 반환합니다. logoImageUrl·iconImageUrl·heroImageUrl·leadingIconUrl에 사용하세요.",
+        "dataUri/file/base64 이미지를 업로드하고 { url, httpsUrl, width, height, mimeType }을 반환합니다. logoImageUrl·iconImageUrl·heroImageUrl·leadingIconUrl에 사용하세요.",
       inputSchema: {
         handle: defaultHandle,
         dataUri: z
@@ -718,18 +746,20 @@ export function createOmoBioMcpServer(
                 "",
                 "워크플로:",
                 "1) list_design_capabilities — 편집 가능 필드·아이콘·레시피 확인",
-                "2) get_page — 현재 design/links/linkId 확인",
-                "3) update_design — tokens, featuredFill, headline, proofItems, heroGraphic, showHandle/showAvatar 등",
-                "4) upsert_section — 섹션 title/columns/items",
-                "5) upsert_link — linkId + 변경 필드만 (예: { linkId, iconKey:'golf', badge:'대표 서비스', span:2 })",
-                "6) get_preview_url — 공개 URL 안내 후 사용자 확인",
+                "2) get_page — design/links/layoutDebug/linkId 확인",
+                "3) upload_asset(dataUri|file) → {url,width,height} 을 logoImageUrl/iconImageUrl/heroImageUrl에 연결",
+                "4) update_design — tokens, featuredFill/Text, headline, proofItems, contentMaxWidth, typography, sections",
+                "5) upsert_section — title/columns/gap|sectionGap/rowGap/columnGap/items",
+                "6) upsert_link — linkId + span/mobileSpan/rowSpan, iconImageUrl, subtitlePlacement, arrowStyle, cardHeight 등",
+                "7) get_preview_url — 공개 URL 안내 후 사용자 확인",
                 "",
                 "레이아웃 팁:",
-                "- 2열 그리드 + 일부 전체폭: section columns:2 + 해당 링크 span:2",
-                "- 라임 CTA: featuredFill/featuredText + 링크 featured:true + iconKey",
+                "- 2열 그리드: section columns:2 + 각 링크 span:1 (자동 전체폭 없음)",
+                "- 라임 CTA: featuredFill/featuredText + featured:true + leadingIconUrl + subtitlePlacement",
                 "- 통계바: proofItems:[{value,label}]",
-                "- 헤드라인 강조: headline + headlineHighlight",
-                "- customCss는 네이티브 필드로 안 될 때만 사용",
+                "- 헤드라인 강조: headlineSegments 또는 headline + headlineHighlight",
+                "- 타이포: desktopFontSize/mobileFontSize/lineHeight/letterSpacing",
+                "- customCss는 네이티브 필드로 안 될 때만 (8000자 초과 오류)",
                 "",
                 "한국어로 진행하고, 변경 전후 어떤 도구를 썼는지 짧게 보고하세요.",
               ].join("\n"),

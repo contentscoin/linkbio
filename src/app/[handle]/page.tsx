@@ -441,6 +441,20 @@ export default async function PublicPage({
   }
   if (attrs.logoWidth) stageStyle["--logo-w"] = `${attrs.logoWidth}px`;
   if (attrs.logoHeight) stageStyle["--logo-h"] = `${attrs.logoHeight}px`;
+  if (attrs.desktopFontSize) {
+    stageStyle["--font-size"] = `${attrs.desktopFontSize}px`;
+  }
+  if (attrs.mobileFontSize) {
+    stageStyle["--font-size-mobile"] = `${attrs.mobileFontSize}px`;
+  }
+  if (attrs.lineHeight) stageStyle["--line-height"] = String(attrs.lineHeight);
+  if (attrs.letterSpacing) stageStyle["--letter-spacing"] = attrs.letterSpacing;
+  if (attrs.headlineFontSize) {
+    stageStyle["--headline-size"] = `${attrs.headlineFontSize}px`;
+  }
+  if (attrs.headlineMobileFontSize) {
+    stageStyle["--headline-size-mobile"] = `${attrs.headlineMobileFontSize}px`;
+  }
 
   const sectionViews = groupLinksBySections(pageLinks, attrs.sections);
   const hasTokens = Boolean(

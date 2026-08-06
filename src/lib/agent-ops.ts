@@ -1242,6 +1242,50 @@ export async function agentUpdateDesign(
     patch.heroGraphicPosition =
       body.heroGraphicPosition as PageDesign["heroGraphicPosition"];
   }
+  if (
+    typeof body.desktopFontSize === "number" &&
+    Number.isFinite(body.desktopFontSize)
+  ) {
+    patch.desktopFontSize = Math.min(
+      28,
+      Math.max(12, Math.floor(body.desktopFontSize)),
+    );
+  }
+  if (
+    typeof body.mobileFontSize === "number" &&
+    Number.isFinite(body.mobileFontSize)
+  ) {
+    patch.mobileFontSize = Math.min(
+      24,
+      Math.max(11, Math.floor(body.mobileFontSize)),
+    );
+  }
+  if (typeof body.lineHeight === "number" && Number.isFinite(body.lineHeight)) {
+    patch.lineHeight = Math.min(2.2, Math.max(1, Number(body.lineHeight)));
+  }
+  if (typeof body.letterSpacing === "string") {
+    patch.letterSpacing = body.letterSpacing.trim().slice(0, 16);
+  } else if (body.letterSpacing === null) {
+    patch.letterSpacing = undefined;
+  }
+  if (
+    typeof body.headlineFontSize === "number" &&
+    Number.isFinite(body.headlineFontSize)
+  ) {
+    patch.headlineFontSize = Math.min(
+      48,
+      Math.max(14, Math.floor(body.headlineFontSize)),
+    );
+  }
+  if (
+    typeof body.headlineMobileFontSize === "number" &&
+    Number.isFinite(body.headlineMobileFontSize)
+  ) {
+    patch.headlineMobileFontSize = Math.min(
+      36,
+      Math.max(14, Math.floor(body.headlineMobileFontSize)),
+    );
+  }
 
   let design: PageDesign;
   try {
@@ -1395,9 +1439,12 @@ export async function agentUploadAsset(
       asset,
       httpsUrl: asset.url,
       url: asset.url,
+      width: asset.width,
+      height: asset.height,
+      mimeType: asset.mimeType,
       previewUrl: publicPageUrl(loaded.handle),
       note:
-        "반환된 httpsUrl을 logoImageUrl / iconImageUrl / heroImageUrl / leadingIconUrl 에 넣으세요.",
+        "반환된 url/httpsUrl을 logoImageUrl / iconImageUrl / heroImageUrl / leadingIconUrl 에 넣으세요.",
     };
   } catch (e) {
     return err(e instanceof Error ? e.message : "자산 업로드 실패");
@@ -1473,14 +1520,20 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       headerAlign: "center|left",
       heroGraphic: "none|golf",
       heroGraphicUrl: "커스텀 히어로 이미지 https",
+      heroImageUrl: "heroGraphicUrl 별칭",
       heroGraphicSize: "히어로 그래픽 px",
       heroGraphicPosition: "right|left|below|above",
+      desktopFontSize: "카드/본문 기본 px (12~28)",
+      mobileFontSize: "모바일 기본 px",
+      lineHeight: "1~2.2",
+      letterSpacing: "예: -0.02em",
+      headlineFontSize: "헤드라인 px",
+      headlineMobileFontSize: "모바일 헤드라인 px",
       showHandle: "boolean",
       showAvatar: "boolean",
-      sections: "upsert_section 또는 update_design.sections (mobileColumns 지원)",
+      sections: "upsert_section 또는 update_design.sections (gap|sectionGap|rowGap|columnGap)",
       customCss:
         "set_custom_css — 8000자 초과 시 오류(절단 없음). [data-role=page-root] 기준",
-      heroImageUrl: "heroGraphicUrl 별칭",
     },
     linkFields: {
       linkId: "부분 수정 시 필수. label/url 없이 필드만 패치 가능",

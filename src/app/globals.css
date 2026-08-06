@@ -243,3 +243,12 @@
   .bio-link[style*="--card-pad-mobile"]{padding:var(--card-pad-mobile)!important}
 }
 .bio-link{isolation:isolate}
+
+.bio-stage[data-role=page-root] .bio{font-size:var(--font-size,inherit);line-height:var(--line-height,1.6);letter-spacing:var(--letter-spacing,normal)}
+.bio-stage[data-role=page-root] .bio-headline{font-size:var(--headline-size,22px);letter-spacing:var(--letter-spacing,-.03em)}
+.bio-stage[data-role=page-root] .bio-link-title{font-size:var(--font-size,15.5px);letter-spacing:var(--letter-spacing,-.01em);line-height:var(--line-height,1.35)}
+@media (max-width:480px){
+  .bio-stage[data-role=page-root] .bio{font-size:var(--font-size-mobile,var(--font-size,inherit))}
+  .bio-stage[data-role=page-root] .bio-headline{font-size:var(--headline-size-mobile,var(--headline-size,19px))}
+  .bio-stage[data-role=page-root] .bio-link-title{font-size:var(--font-size-mobile,var(--font-size,14.5px))}
+}

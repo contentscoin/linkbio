@@ -136,3 +136,8 @@
 - P0 그리드/업로드: bento nth-child 자동확장 제거, span 저장값 우선, upload_asset+assets 테이블,
   CTA trailingText/subtitlePlacement, 카드 height/aspectRatio/gap, CSS 8k 오류, layoutDebug.
 - 브랜치 `cursor/bio-p0-grid-upload-509c`.
+
+[2026-08-07 06:15 KST]
+- stdio MCP(mcp/server.mjs) 스키마 전면 갱신(upload_asset·최신 필드, additionalProperties 허용).
+- upload_asset에 width/height/mimeType 반환. typography·sectionGap 필드 추가.
+- HTTP MCP 0.7.0, settings/design_editor 가이드 갱신.

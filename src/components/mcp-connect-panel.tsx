@@ -281,7 +281,7 @@ export function McpConnectPanel({
         </li>
         <li>
           디자인 변경:{" "}
-          <code>list_design_capabilities</code> →{" "}
+          <code>list_design_capabilities</code> → <code>upload_asset</code> →{" "}
           <code>update_design</code> / <code>upsert_section</code> /{" "}
           <code>upsert_link</code> (부분 수정) /{" "}
           <code>get_preview_url</code>
@@ -294,13 +294,22 @@ export function McpConnectPanel({
           <code>list_design_capabilities</code> — 편집 가능 필드·아이콘·레시피
         </li>
         <li>
-          <code>update_design</code> / <code>upsert_section</code> — 색·헤드라인·통계바·섹션
+          <code>upload_asset</code> — dataUri/file → url·width·height·mimeType
+          (logoImageUrl/iconImageUrl/heroImageUrl)
         </li>
         <li>
-          <code>upsert_link</code> — 링크 생성/부분 수정 (iconKey·badge·span·featured)
+          <code>update_design</code> —
+          tokens·sections·proofItems·logoImageUrl·headline·contentMaxWidth·featuredFill·typography
         </li>
         <li>
-          <code>get_preview_url</code> — 공개 URL 확인
+          <code>upsert_section</code> — columns·gap/sectionGap·rowGap·columnGap·items
+        </li>
+        <li>
+          <code>upsert_link</code> —
+          span·iconImageUrl·subtitlePlacement·arrowStyle·cardHeight 등 부분 수정
+        </li>
+        <li>
+          <code>get_page</code> / <code>get_preview_url</code> — layoutDebug·미리보기
         </li>
         <li>
           <code>list_design_templates</code> /{" "}
@@ -315,7 +324,7 @@ export function McpConnectPanel({
           <code>set_background_image</code> / <code>set_custom_css</code>
         </li>
         <li>
-          <code>get_page</code> / <code>update_profile</code> — 조회·프로필
+          <code>update_profile</code> — 프로필
         </li>
       </ul>
 
