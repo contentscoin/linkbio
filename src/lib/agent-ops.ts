@@ -13,7 +13,7 @@ import {
   getPageLinks,
   summarizePageBundle,
 } from "@/lib/page-bundle";
-import { coerceIconKey } from "@/lib/link-icons";
+import { coerceIconKey, LINK_ICON_KEYS } from "@/lib/link-icons";
 import {
   mergePageDesign,
   parseDesignSection,
@@ -104,6 +104,7 @@ export async function agentHealth(auth: Extract<McpAuthResult, { ok: true }>) {
       "update_profile",
       "upsert_link",
       "delete_link",
+      "list_design_capabilities",
       "start_profile_wizard",
       "answer_profile_wizard",
       "get_profile_wizard_status",
@@ -189,11 +190,117 @@ export async function agentUpsertLink(
   if (!loaded.ok) return loaded;
   const { page } = loaded;
   const db = getDb();
+  const linkId =
+    typeof body.linkId === "string" && body.linkId.trim()
+      ? body.linkId.trim()
+      : undefined;
 
+  // --- Partial update (MCP editing): linkId only requires changed fields ---
+  if (linkId) {
+    const [existing] = await db
+      .select()
+      .from(links)
+      .where(and(eq(links.id, linkId), eq(links.pageId, page.id)))
+      .limit(1);
+    if (!existing) return err("Link not found.", 404);
+
+    const patch: Partial<typeof links.$inferInsert> = {
+      updatedAt: new Date(),
+    };
+
+    if (typeof body.label === "string") {
+      const label = body.label.trim().slice(0, 80);
+      if (!label) return err("Invalid label.");
+      patch.label = label;
+    }
+    if (body.url !== undefined) {
+      const url = urlSchema.safeParse(body.url);
+      if (!url.success) {
+        return err(url.error.issues[0]?.message ?? "Invalid URL.");
+      }
+      patch.url = url.data;
+    }
+    if (typeof body.sublabel === "string") {
+      patch.sublabel = body.sublabel.trim().slice(0, 160);
+    } else if (body.sublabel === null) {
+      patch.sublabel = "";
+    }
+    if (typeof body.featured === "boolean") {
+      patch.featured = body.featured;
+    }
+    if (typeof body.isVisible === "boolean") {
+      patch.visible = body.isVisible;
+      patch.isVisible = body.isVisible;
+    } else if (typeof body.visible === "boolean") {
+      patch.visible = body.visible;
+      patch.isVisible = body.visible;
+    }
+    if (typeof body.sortOrder === "number" && Number.isFinite(body.sortOrder)) {
+      patch.sortOrder = Math.max(0, Math.floor(body.sortOrder));
+      patch.position = patch.sortOrder;
+    }
+    if (typeof body.span === "number" && Number.isFinite(body.span)) {
+      patch.span = Math.min(3, Math.max(1, Math.floor(body.span)));
+    }
+    if (typeof body.variant === "string") {
+      patch.variant = body.variant.trim().slice(0, 32) || "card";
+    } else if (body.variant === null) {
+      patch.variant = "card";
+    }
+    const section =
+      typeof body.section === "string"
+        ? body.section
+        : typeof body.groupId === "string"
+          ? body.groupId
+          : undefined;
+    if (typeof section === "string") {
+      patch.section = section.trim().slice(0, 64);
+    } else if (body.section === null || body.groupId === null) {
+      patch.section = "";
+    }
+    if (body.iconKey !== undefined) {
+      patch.iconKey =
+        body.iconKey === null ? "" : coerceIconKey(body.iconKey);
+    }
+    if (body.iconUrl !== undefined) {
+      if (body.iconUrl === null || body.iconUrl === "") {
+        patch.iconUrl = "";
+      } else if (typeof body.iconUrl === "string") {
+        const safe = sanitizeHttpsUrl(body.iconUrl);
+        if (!safe) return err("iconUrl은 https URL이어야 합니다.");
+        patch.iconUrl = safe;
+      }
+    }
+    if (body.badge !== undefined) {
+      patch.badge =
+        body.badge === null
+          ? ""
+          : typeof body.badge === "string"
+            ? body.badge.trim().slice(0, 24)
+            : "";
+    }
+
+    const keys = Object.keys(patch).filter((k) => k !== "updatedAt");
+    if (keys.length === 0) {
+      return err(
+        "수정할 필드가 없습니다. iconKey/badge/span/variant/featured 등을 지정하세요.",
+      );
+    }
+
+    await db
+      .update(links)
+      .set(patch)
+      .where(and(eq(links.id, linkId), eq(links.pageId, page.id)));
+
+    const fresh = (await getPageByHandle(loaded.handle)) ?? page;
+    return { ok: true, updatedFields: keys, page: await summarize(fresh) };
+  }
+
+  // --- Create: label + url required ---
   const label =
     typeof body.label === "string" ? body.label.trim().slice(0, 80) : "";
   const url = urlSchema.safeParse(body.url);
-  if (!label) return err("Invalid label.");
+  if (!label) return err("새 링크 생성 시 label이 필요합니다.");
   if (!url.success) {
     return err(url.error.issues[0]?.message ?? "Invalid URL.");
   }
@@ -202,7 +309,8 @@ export async function agentUpsertLink(
   const featured = body.featured === true;
   const visible = body.isVisible !== false && body.visible !== false;
 
-  const patch: Partial<typeof links.$inferInsert> = {
+  const values: typeof links.$inferInsert = {
+    pageId: page.id,
     label,
     sublabel,
     url: url.data,
@@ -213,14 +321,14 @@ export async function agentUpsertLink(
   };
 
   if (typeof body.sortOrder === "number" && Number.isFinite(body.sortOrder)) {
-    patch.sortOrder = Math.max(0, Math.floor(body.sortOrder));
-    patch.position = patch.sortOrder;
+    values.sortOrder = Math.max(0, Math.floor(body.sortOrder));
+    values.position = values.sortOrder;
   }
   if (typeof body.span === "number" && Number.isFinite(body.span)) {
-    patch.span = Math.min(3, Math.max(1, Math.floor(body.span)));
+    values.span = Math.min(3, Math.max(1, Math.floor(body.span)));
   }
   if (typeof body.variant === "string" && body.variant.trim()) {
-    patch.variant = body.variant.trim().slice(0, 32);
+    values.variant = body.variant.trim().slice(0, 32);
   }
   const section =
     typeof body.section === "string"
@@ -229,23 +337,23 @@ export async function agentUpsertLink(
         ? body.groupId
         : undefined;
   if (typeof section === "string") {
-    patch.section = section.trim().slice(0, 64);
+    values.section = section.trim().slice(0, 64);
   }
   if (body.iconKey !== undefined) {
-    patch.iconKey =
+    values.iconKey =
       body.iconKey === null ? "" : coerceIconKey(body.iconKey);
   }
   if (body.iconUrl !== undefined) {
     if (body.iconUrl === null || body.iconUrl === "") {
-      patch.iconUrl = "";
+      values.iconUrl = "";
     } else if (typeof body.iconUrl === "string") {
       const safe = sanitizeHttpsUrl(body.iconUrl);
       if (!safe) return err("iconUrl은 https URL이어야 합니다.");
-      patch.iconUrl = safe;
+      values.iconUrl = safe;
     }
   }
   if (body.badge !== undefined) {
-    patch.badge =
+    values.badge =
       body.badge === null
         ? ""
         : typeof body.badge === "string"
@@ -253,40 +361,27 @@ export async function agentUpsertLink(
           : "";
   }
 
-  if (typeof body.linkId === "string" && body.linkId) {
-    await db
-      .update(links)
-      .set(patch)
-      .where(and(eq(links.id, body.linkId), eq(links.pageId, page.id)));
-  } else {
+  if (typeof values.sortOrder !== "number") {
     const [last] = await db
       .select({ sortOrder: links.sortOrder })
       .from(links)
       .where(eq(links.pageId, page.id))
       .orderBy(desc(links.sortOrder))
       .limit(1);
-    const sortOrder =
-      typeof patch.sortOrder === "number"
-        ? patch.sortOrder
-        : (last?.sortOrder ?? -1) + 1;
-    await db.insert(links).values({
-      pageId: page.id,
-      label,
-      sublabel,
-      url: url.data,
-      featured,
-      visible,
-      isVisible: visible,
-      sortOrder,
-      position: sortOrder,
-      span: typeof patch.span === "number" ? patch.span : 1,
-      variant: typeof patch.variant === "string" ? patch.variant : "line",
-      section: typeof patch.section === "string" ? patch.section : "",
-      iconKey: typeof patch.iconKey === "string" ? patch.iconKey : "",
-      iconUrl: typeof patch.iconUrl === "string" ? patch.iconUrl : "",
-      badge: typeof patch.badge === "string" ? patch.badge : "",
-    });
+    const sortOrder = (last?.sortOrder ?? -1) + 1;
+    values.sortOrder = sortOrder;
+    values.position = sortOrder;
   }
+
+  await db.insert(links).values({
+    ...values,
+    span: typeof values.span === "number" ? values.span : 1,
+    variant: typeof values.variant === "string" ? values.variant : "card",
+    section: typeof values.section === "string" ? values.section : "",
+    iconKey: typeof values.iconKey === "string" ? values.iconKey : "",
+    iconUrl: typeof values.iconUrl === "string" ? values.iconUrl : "",
+    badge: typeof values.badge === "string" ? values.badge : "",
+  });
 
   const fresh = (await getPageByHandle(loaded.handle)) ?? page;
   return { ok: true, page: await summarize(fresh) };
@@ -839,6 +934,86 @@ export async function agentGetPreviewUrl(
   };
 }
 
+/** Catalog of MCP-editable design/link fields — for agents, not page mutation. */
+export async function agentListDesignCapabilities(): Promise<AgentResult> {
+  return {
+    ok: true,
+    purpose:
+      "페이지 디자인은 MCP 도구로 수정합니다. 이 목록은 편집 가능한 필드와 권장 워크플로입니다.",
+    workflow: [
+      "1) get_page 로 현재 design/links 확인",
+      "2) list_design_capabilities 로 필드·아이콘 키 확인 (필요 시)",
+      "3) update_design 으로 색/헤드라인/통계바/섹션 골격 설정",
+      "4) upsert_section 으로 섹션 title/columns/items 조정",
+      "5) upsert_link(linkId + 변경 필드만) 로 아이콘·배지·span·variant·featured 부분 수정",
+      "6) get_preview_url 후 공개 URL 새로고침으로 확인",
+    ],
+    designFields: {
+      theme: "fairway|noir|aurora|bento|brutal|editorial|terminal|paper 등",
+      accent: "CSS 색상 (예: #C9F232)",
+      layout: "stack|bento|list",
+      buttonStyle: "solid|soft|outline|ghost|glass|elevated|sticker",
+      buttonFill: "일반 카드 배경 (featured 제외)",
+      buttonText: "일반 카드 글자색",
+      featuredFill: "CTA(featured) 배경만",
+      featuredText: "CTA 글자색",
+      featuredBorder: "CTA 테두리",
+      tokens: {
+        pageBackground: "페이지 배경",
+        cardBackground: "카드 배경",
+        cardText: "카드 글자",
+        mutedText: "보조 글자",
+        featuredBackground: "CTA 배경 토큰",
+        featuredText: "CTA 글자 토큰",
+        borderColor: "테두리",
+      },
+      proofItems: "[{ value, label }] 헤더 통계 바 (null이면 제거)",
+      logoUrl: "브랜드 로고 https URL (null이면 제거)",
+      headline: "헤드라인 문자열",
+      headlineHighlight: "headline 안에서 accent 강조할 부분",
+      headerAlign: "center|left",
+      heroGraphic: "none|golf",
+      showHandle: "boolean",
+      showAvatar: "boolean",
+      sections: "upsert_section 또는 update_design.sections",
+      customCss: "set_custom_css (최후 수단)",
+    },
+    linkFields: {
+      linkId: "부분 수정 시 필수. label/url 없이 필드만 패치 가능",
+      label: "제목 (신규 생성 시 필수)",
+      url: "URL (신규 생성 시 필수)",
+      sublabel: "설명",
+      featured: "true면 라임 CTA 역할 (featuredFill 적용)",
+      iconKey: "내장 아이콘 키",
+      iconUrl: "커스텀 아이콘 https (iconKey보다 우선)",
+      badge: "카드 배지 텍스트 (예: 대표 서비스)",
+      span: "1|2|3 — 그리드에서 가로 점유. 2면 한 줄 전체",
+      variant: "card|full|spotlight|featured",
+      section: "섹션/그룹 id",
+      sortOrder: "정렬 순서",
+      isVisible: "노출 여부",
+    },
+    icons: [...LINK_ICON_KEYS],
+    variants: {
+      card: "기본 그리드/리스트 카드",
+      full: "한 줄 전체 너비 (span:2와 유사)",
+      spotlight: "강조 카드 (흰 배경+액센트 테두리, badge와 함께 사용)",
+      featured: "링크 featured:true 권장 — CTA 색상 토큰 사용",
+    },
+    layoutRecipes: {
+      "헤더+통계바":
+        "update_design({ headline, headlineHighlight, heroGraphic:'golf', proofItems, showHandle:false, showAvatar:false })",
+      "라임 CTA":
+        "update_design({ featuredFill, featuredText }) + upsert_link({ linkId, featured:true, iconKey:'chat', span:2 })",
+      "2열+일부전체":
+        "upsert_section({ id, title, columns:2, items:[...] }) + 전체폭 링크는 upsert_link({ linkId, span:2 })",
+      "1열 바로가기":
+        "upsert_section({ id, title, columns:1, items:[...] }) + 각 링크 iconKey",
+    },
+    note: "페이지 콘텐츠를 임의로 바꾸지 말고, 사용자가 요청한 수정만 MCP 도구로 적용하세요.",
+  };
+}
+
 export async function runAgentAction(
   auth: Extract<McpAuthResult, { ok: true }>,
   action: string,
@@ -856,6 +1031,8 @@ export async function runAgentAction(
       return agentUpsertLink(auth, body);
     case "delete_link":
       return agentDeleteLink(auth, body);
+    case "list_design_capabilities":
+      return agentListDesignCapabilities();
     case "start_profile_wizard":
       return agentStartProfileWizard(auth, body);
     case "answer_profile_wizard":

@@ -84,3 +84,8 @@
 - DB: `scripts/migrate-link-icons.mjs` 실행 (icon_key/icon_url/badge).
 - `/fmg`에 네이티브 P1 데이터 적용(아이콘·배지·proof·headline). customCss는 배포 전 라이브 폴백으로 유지.
 - 검증: typecheck OK, build OK.
+
+[2026-08-06 17:00 KST]
+- 사용자  Clarification: 목업 이미지를 ‘직접 적용’이 아니라 MCP로 수정할 수 있는 **기능** 개발이 목적.
+- 보강: upsert_link 부분 수정(linkId만으로 icon/badge/span 등 패치), list_design_capabilities 도구, design_editor 프롬프트, CTA+아이콘 가로 레이아웃 CSS, settings MCP 가이드 문구.
+- /fmg 콘텐츠는 MCP로 사용자가 수정하도록 이 PR에서 건드리지 않음.

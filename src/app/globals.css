@@ -69,6 +69,20 @@
 .bio-link-icon--accent{background:color-mix(in srgb,var(--featured-fill,var(--accent)) 22%,#0000);color:var(--featured-text,var(--fg))}
 .bio-link-icon-img{object-fit:cover;padding:0;background:transparent}
 .bio-link--has-icon{align-items:center;gap:12px}
+.bio-link--featured.bio-link--has-icon{
+  flex-direction:row;
+  align-items:center;
+  gap:14px;
+  justify-content:flex-start;
+}
+.bio-link--featured.bio-link--has-icon .bio-link-body{flex:auto;min-width:0}
+.bio-link--featured.bio-link--has-icon .bio-link-mark{display:none}
+.bio[data-layout=bento] .bio-link--featured.bio-link--has-icon{
+  flex-direction:row;
+  justify-content:flex-start;
+  align-items:center;
+  min-height:0;
+}
 .bio[data-layout=bento] .bio-link--has-icon:not(.bio-link--featured),
 .bio[data-layout=bento] .bio-link--spotlight{
   flex-direction:row;

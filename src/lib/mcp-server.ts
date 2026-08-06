@@ -26,7 +26,7 @@ export function createOmoBioMcpServer(
 ) {
   const server = new McpServer({
     name: "omo-bio",
-    version: "0.2.0",
+    version: "0.3.0",
   });
 
   const defaultHandle =
@@ -79,20 +79,32 @@ export function createOmoBioMcpServer(
     {
       title: "링크 추가/수정",
       description:
-        "링크 버튼을 만들거나 수정합니다. sortOrder/span/variant/section(groupId) 지원.",
+        "링크 버튼을 만들거나 수정합니다. linkId가 있으면 label/url 없이 변경 필드만 부분 수정(아이콘·배지·span·variant·featured 등). 신규 시 label+url 필수.",
       inputSchema: {
         handle: defaultHandle,
-        linkId: z.string().optional(),
-        label: z.string(),
-        sublabel: z.string().optional(),
-        url: z.string(),
+        linkId: z
+          .string()
+          .optional()
+          .describe("있으면 부분 수정 모드 (지정한 필드만 패치)"),
+        label: z.string().optional().describe("신규 생성 시 필수"),
+        sublabel: z.string().nullable().optional(),
+        url: z.string().optional().describe("신규 생성 시 필수"),
         featured: z.boolean().optional(),
         isVisible: z.boolean().optional(),
         sortOrder: z.number().optional(),
-        span: z.number().min(1).max(3).optional(),
-        variant: z.string().optional(),
-        section: z.string().optional().describe("섹션/그룹 id"),
-        groupId: z.string().optional().describe("section 별칭"),
+        span: z
+          .number()
+          .min(1)
+          .max(3)
+          .optional()
+          .describe("그리드 가로 점유. 2면 한 줄 전체"),
+        variant: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("card|full|spotlight|featured"),
+        section: z.string().nullable().optional().describe("섹션/그룹 id"),
+        groupId: z.string().nullable().optional().describe("section 별칭"),
         iconKey: z
           .string()
           .nullable()
@@ -142,6 +154,18 @@ export function createOmoBioMcpServer(
             (auth.scope === "page" ? auth.handle : ""),
         }),
       ),
+  );
+
+  server.registerTool(
+    "list_design_capabilities",
+    {
+      title: "디자인 편집 가능 항목",
+      description:
+        "MCP로 수정 가능한 design/link 필드, 아이콘 키, 레이아웃 레시피, 권장 워크플로를 반환합니다. 페이지를 바꾸기 전에 이 도구로 확인하세요.",
+      inputSchema: {},
+    },
+    async () =>
+      textResult(await runAgentAction(auth, "list_design_capabilities", {})),
   );
 
   server.registerTool(
@@ -480,6 +504,61 @@ export function createOmoBioMcpServer(
                 "4) done=true 될 때까지 반복",
                 "5) 필요하면 list_design_templates / apply_design_template / set_avatar_image / set_custom_css 로 디자인을 다듬기",
                 "한국어로 친절하게 진행하세요.",
+              ].join("\n"),
+            },
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerPrompt(
+    "design_editor",
+    {
+      title: "디자인 편집 가이드",
+      description:
+        "공개 페이지 디자인을 MCP 도구만으로 수정할 때 따르는 워크플로/필드 가이드입니다. 콘텐츠는 사용자 요청 범위만 변경하세요.",
+      argsSchema: {
+        handle: z
+          .string()
+          .optional()
+          .describe(
+            auth.scope === "page"
+              ? `기본 handle: ${auth.handle}`
+              : "대상 페이지 handle",
+          ),
+      },
+    },
+    async ({ handle }) => {
+      const target =
+        handleOptional(handle) ??
+        (auth.scope === "page" ? auth.handle : "(handle 필요)");
+      return {
+        messages: [
+          {
+            role: "user" as const,
+            content: {
+              type: "text" as const,
+              text: [
+                `OMO Bio 디자인을 MCP로 편집합니다. handle=${target}`,
+                "중요: 이미지를 '그대로 복제'하지 말고, 사용자가 요청한 필드만 도구로 수정하세요.",
+                "",
+                "워크플로:",
+                "1) list_design_capabilities — 편집 가능 필드·아이콘·레시피 확인",
+                "2) get_page — 현재 design/links/linkId 확인",
+                "3) update_design — tokens, featuredFill, headline, proofItems, heroGraphic, showHandle/showAvatar 등",
+                "4) upsert_section — 섹션 title/columns/items",
+                "5) upsert_link — linkId + 변경 필드만 (예: { linkId, iconKey:'golf', badge:'대표 서비스', span:2 })",
+                "6) get_preview_url — 공개 URL 안내 후 사용자 확인",
+                "",
+                "레이아웃 팁:",
+                "- 2열 그리드 + 일부 전체폭: section columns:2 + 해당 링크 span:2",
+                "- 라임 CTA: featuredFill/featuredText + 링크 featured:true + iconKey",
+                "- 통계바: proofItems:[{value,label}]",
+                "- 헤드라인 강조: headline + headlineHighlight",
+                "- customCss는 네이티브 필드로 안 될 때만 사용",
+                "",
+                "한국어로 진행하고, 변경 전후 어떤 도구를 썼는지 짧게 보고하세요.",
               ].join("\n"),
             },
           },
