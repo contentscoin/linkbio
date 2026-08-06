@@ -41,6 +41,22 @@ import {
   initialsFromName,
   urlSchema,
 } from "@/lib/validation";
+import {
+  agentCreatePageFromTemplate,
+  agentGetPageSchema,
+  agentGetTemplate,
+  agentListTemplates,
+  agentOpenProfileDesigner,
+  agentPublishPage,
+  agentRenderPreview,
+  agentReorderComponents,
+  agentRestoreVersion,
+  agentSaveDraft,
+  agentUpdatePageContent,
+  agentUpdateSection,
+  agentUpsertComponent,
+  agentValidatePage,
+} from "@/lib/agent-schema-ops";
 
 export type AgentOk = { ok: true; page?: ReturnType<typeof summarizePageBundle>; [key: string]: unknown };
 export type AgentErr = { ok: false; error: string; status?: number };
@@ -249,6 +265,20 @@ export async function agentHealth(auth: Extract<McpAuthResult, { ok: true }>) {
       "upsert_section",
       "upload_asset",
       "get_preview_url",
+      "open_profile_designer",
+      "list_templates",
+      "get_template",
+      "create_page_from_template",
+      "get_page_schema",
+      "update_page_content",
+      "update_section",
+      "upsert_component",
+      "reorder_components",
+      "render_preview",
+      "validate_page",
+      "save_draft",
+      "publish_page",
+      "restore_version",
     ],
   };
 }
@@ -1656,6 +1686,34 @@ export async function runAgentAction(
       return agentUploadAsset(auth, body);
     case "get_preview_url":
       return agentGetPreviewUrl(auth, body);
+    case "open_profile_designer":
+      return agentOpenProfileDesigner(auth, body);
+    case "list_templates":
+      return agentListTemplates();
+    case "get_template":
+      return agentGetTemplate(body);
+    case "create_page_from_template":
+      return agentCreatePageFromTemplate(auth, body);
+    case "get_page_schema":
+      return agentGetPageSchema(auth, body);
+    case "update_page_content":
+      return agentUpdatePageContent(auth, body);
+    case "update_section":
+      return agentUpdateSection(auth, body);
+    case "upsert_component":
+      return agentUpsertComponent(auth, body);
+    case "reorder_components":
+      return agentReorderComponents(auth, body);
+    case "render_preview":
+      return agentRenderPreview(auth, body);
+    case "validate_page":
+      return agentValidatePage(auth, body);
+    case "save_draft":
+      return agentSaveDraft(auth, body);
+    case "publish_page":
+      return agentPublishPage(auth, body);
+    case "restore_version":
+      return agentRestoreVersion(auth, body);
     default:
       return err(`Unknown action: ${action}`);
   }

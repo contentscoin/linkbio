@@ -395,6 +395,198 @@ const tools = [
       additionalProperties: true,
     },
   },
+  {
+    name: "open_profile_designer",
+    description:
+      "ChatGPT/MCP Apps에 Bioomo 프로필 디자이너 위젯을 엽니다. CSS 금지 — Page Schema만.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: handleProp,
+        step: {
+          type: "string",
+          description: "guide|template|content|design|preview",
+        },
+      },
+      required: ["handle"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "list_templates",
+    description: "버전 관리 Page Schema 템플릿 목록(FMGS Premium 등).",
+    inputSchema: { type: "object", properties: {}, additionalProperties: true },
+  },
+  {
+    name: "get_template",
+    description: "템플릿 스키마·반응형 규칙·검증 결과.",
+    inputSchema: {
+      type: "object",
+      properties: { templateId: { type: "string" } },
+      required: ["templateId"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "create_page_from_template",
+    description: "템플릿으로 Page Schema 적용. persist 기본 true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: handleProp,
+        templateId: { type: "string" },
+        displayName: { type: "string" },
+        headline: { type: "string" },
+        theme: { type: "string" },
+        logoUrl: { type: "string" },
+        persist: { type: "boolean" },
+        publish: { type: "boolean" },
+      },
+      required: ["handle", "templateId"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "get_page_schema",
+    description: "draft/published Page Schema와 버전 목록.",
+    inputSchema: {
+      type: "object",
+      properties: { handle: handleProp },
+      required: ["handle"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "update_page_content",
+    description: "구조화 Page Schema로 콘텐츠/테마/섹션 갱신. CSS 금지.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: handleProp,
+        schema: { type: "object", additionalProperties: true },
+        templateId: { type: "string" },
+        theme: { type: "string" },
+        contentWidth: {},
+        brand: { type: "object", additionalProperties: true },
+        sections: { type: "array" },
+        designOptions: { type: "object", additionalProperties: true },
+        publish: { type: "boolean" },
+      },
+      required: ["handle"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "update_section",
+    description: "sectionId로 섹션 패치.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: handleProp,
+        sectionId: { type: "string" },
+        patch: { type: "object", additionalProperties: true },
+      },
+      required: ["handle", "sectionId"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "upsert_component",
+    description: "serviceGrid/shortcuts/social 아이템 upsert.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: handleProp,
+        sectionId: { type: "string" },
+        componentId: { type: "string" },
+        component: { type: "object", additionalProperties: true },
+      },
+      required: ["handle", "sectionId", "component"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "reorder_components",
+    description: "섹션 아이템 순서 변경.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: handleProp,
+        sectionId: { type: "string" },
+        orderedIds: { type: "array", items: { type: "string" } },
+      },
+      required: ["handle", "sectionId", "orderedIds"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "render_preview",
+    description: "동일 렌더러 기준 preview/designer/public URL + 검증.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: handleProp,
+        baseUrl: { type: "string" },
+      },
+      required: ["handle"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "validate_page",
+    description: "Page Schema 모바일/URL/그리드 검증.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: handleProp,
+        schema: { type: "object", additionalProperties: true },
+      },
+      required: ["handle"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "save_draft",
+    description: "Page Schema 초안 버전 저장 + 링크 동기화.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: handleProp,
+        schema: { type: "object", additionalProperties: true },
+        label: { type: "string" },
+      },
+      required: ["handle"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "publish_page",
+    description: "검증 후 Page Schema 게시. force로 강제 가능.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: handleProp,
+        schema: { type: "object", additionalProperties: true },
+        label: { type: "string" },
+        force: { type: "boolean" },
+      },
+      required: ["handle"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "restore_version",
+    description: "versionId로 이전 Page Schema 복원·게시.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: handleProp,
+        versionId: { type: "string" },
+      },
+      required: ["handle", "versionId"],
+      additionalProperties: true,
+    },
+  },
 ];
 
 const postActions = new Set([
@@ -413,10 +605,24 @@ const postActions = new Set([
   "upsert_section",
   "upload_asset",
   "get_preview_url",
+  "open_profile_designer",
+  "list_templates",
+  "get_template",
+  "create_page_from_template",
+  "get_page_schema",
+  "update_page_content",
+  "update_section",
+  "upsert_component",
+  "reorder_components",
+  "render_preview",
+  "validate_page",
+  "save_draft",
+  "publish_page",
+  "restore_version",
 ]);
 
 const server = new Server(
-  { name: "omo-bio", version: "0.7.0" },
+  { name: "omo-bio", version: "0.8.0" },
   { capabilities: { tools: {} } },
 );
 

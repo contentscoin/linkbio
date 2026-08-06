@@ -2,6 +2,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { McpAuthResult } from "@/lib/mcp-auth";
 import { runAgentAction, type AgentResult } from "@/lib/agent-ops";
+import {
+  PROFILE_DESIGNER_URI,
+  profileDesignerWidgetHtml,
+} from "@/lib/designer-widget";
 
 function textResult(result: AgentResult) {
   const isError = result.ok === false;
@@ -12,6 +16,7 @@ function textResult(result: AgentResult) {
         text: JSON.stringify(result, null, 2),
       },
     ],
+    structuredContent: result as unknown as Record<string, unknown>,
     isError,
   };
 }
@@ -20,19 +25,51 @@ function handleOptional(value: string | undefined) {
   return value && value.trim() ? value : undefined;
 }
 
+function resolveHandle(
+  auth: Extract<McpAuthResult, { ok: true }>,
+  handle?: string,
+) {
+  return handleOptional(handle) ?? (auth.scope === "page" ? auth.handle : "");
+}
+
 /** Build a per-request MCP server bound to the authenticated scope. */
 export function createOmoBioMcpServer(
   auth: Extract<McpAuthResult, { ok: true }>,
 ) {
   const server = new McpServer({
     name: "omo-bio",
-    version: "0.7.0",
+    version: "0.8.0",
   });
 
   const defaultHandle =
     auth.scope === "page"
       ? z.string().optional().describe(`기본값: ${auth.handle}`)
       : z.string().describe("페이지 handle");
+
+  server.registerResource(
+    "profile-designer",
+    PROFILE_DESIGNER_URI,
+    {
+      description:
+        "Bioomo interactive profile designer (template → content → design → preview/publish)",
+      mimeType: "text/html;profile=mcp-app",
+    },
+    async () => ({
+      contents: [
+        {
+          uri: PROFILE_DESIGNER_URI,
+          mimeType: "text/html;profile=mcp-app",
+          text: profileDesignerWidgetHtml({
+            handle: auth.scope === "page" ? auth.handle : "",
+            step: "guide",
+          }),
+          _meta: {
+            ui: { prefersBorder: true },
+          },
+        },
+      ],
+    }),
+  );
 
   server.registerTool(
     "get_page",
@@ -663,9 +700,290 @@ export function createOmoBioMcpServer(
       textResult(
         await runAgentAction(auth, "get_preview_url", {
           ...args,
-          handle:
-            handleOptional(args.handle) ??
-            (auth.scope === "page" ? auth.handle : ""),
+          handle: resolveHandle(auth, args.handle),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "open_profile_designer",
+    {
+      title: "프로필 디자이너 열기",
+      description:
+        "ChatGPT/MCP Apps 대화창에 Bioomo 제작 위젯을 엽니다. 템플릿 선택·콘텐츠·디자인·미리보기·게시. CSS 직접 작성 금지 — Page Schema만 사용.",
+      inputSchema: {
+        handle: defaultHandle,
+        step: z
+          .enum(["guide", "template", "content", "design", "preview"])
+          .optional()
+          .describe("시작 단계"),
+      },
+      _meta: {
+        ui: { resourceUri: PROFILE_DESIGNER_URI },
+        "openai/outputTemplate": PROFILE_DESIGNER_URI,
+        "openai/toolInvocation/invoking": "프로필 디자이너 여는 중…",
+        "openai/toolInvocation/invoked": "프로필 디자이너를 표시했습니다.",
+        "openai/widgetAccessible": true,
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "open_profile_designer", {
+          handle: resolveHandle(auth, args.handle),
+          step: args.step,
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "list_templates",
+    {
+      title: "스키마 템플릿 목록",
+      description:
+        "버전 관리되는 Page Schema 템플릿(FMGS Premium, Corporate Grid 등)을 나열합니다.",
+    },
+    async () => textResult(await runAgentAction(auth, "list_templates", {})),
+  );
+
+  server.registerTool(
+    "get_template",
+    {
+      title: "템플릿 상세",
+      description: "템플릿 스키마·반응형 규칙·검증 결과를 반환합니다.",
+      inputSchema: {
+        templateId: z.string().describe("예: fmgs-premium"),
+      },
+    },
+    async (args) =>
+      textResult(await runAgentAction(auth, "get_template", args)),
+  );
+
+  server.registerTool(
+    "create_page_from_template",
+    {
+      title: "템플릿으로 페이지 생성",
+      description:
+        "템플릿을 복제해 Page Schema로 적용합니다. persist 기본 true. publish:true면 즉시 게시.",
+      inputSchema: {
+        handle: defaultHandle,
+        templateId: z.string(),
+        displayName: z.string().optional(),
+        headline: z.string().optional(),
+        theme: z.string().optional(),
+        logoUrl: z.string().optional(),
+        persist: z.boolean().optional(),
+        publish: z.boolean().optional(),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "create_page_from_template", {
+          ...args,
+          handle: resolveHandle(auth, args.handle),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "get_page_schema",
+    {
+      title: "페이지 스키마 조회",
+      description: "draft/published Page Schema와 버전 목록을 조회합니다.",
+      inputSchema: { handle: defaultHandle },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "get_page_schema", {
+          handle: resolveHandle(auth, args.handle),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "update_page_content",
+    {
+      title: "페이지 스키마 업데이트",
+      description:
+        "구조화된 Page Schema(또는 schema 필드)로 콘텐츠/테마/섹션을 갱신합니다. CSS 금지.",
+      inputSchema: {
+        handle: defaultHandle,
+        schema: z.record(z.string(), z.unknown()).optional(),
+        templateId: z.string().optional(),
+        theme: z.string().optional(),
+        contentWidth: z.union([z.string(), z.number()]).optional(),
+        brand: z.record(z.string(), z.unknown()).optional(),
+        sections: z.array(z.unknown()).optional(),
+        designOptions: z.record(z.string(), z.unknown()).optional(),
+        publish: z.boolean().optional(),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "update_page_content", {
+          ...args,
+          handle: resolveHandle(auth, args.handle),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "update_section",
+    {
+      title: "섹션 수정",
+      description: "sectionId(또는 type)로 섹션 필드를 패치합니다.",
+      inputSchema: {
+        handle: defaultHandle,
+        sectionId: z.string(),
+        patch: z.record(z.string(), z.unknown()).optional(),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "update_section", {
+          ...args,
+          handle: resolveHandle(auth, args.handle),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "upsert_component",
+    {
+      title: "컴포넌트 추가/수정",
+      description: "serviceGrid/shortcuts/social 아이템을 upsert합니다.",
+      inputSchema: {
+        handle: defaultHandle,
+        sectionId: z.string(),
+        componentId: z.string().optional(),
+        component: z.record(z.string(), z.unknown()),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "upsert_component", {
+          ...args,
+          handle: resolveHandle(auth, args.handle),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "reorder_components",
+    {
+      title: "컴포넌트 순서 변경",
+      description: "섹션 내 아이템 순서를 orderedIds로 재배치합니다.",
+      inputSchema: {
+        handle: defaultHandle,
+        sectionId: z.string(),
+        orderedIds: z.array(z.string()),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "reorder_components", {
+          ...args,
+          handle: resolveHandle(auth, args.handle),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "render_preview",
+    {
+      title: "미리보기 렌더 정보",
+      description:
+        "동일 React 렌더러 기준 preview/designer/public URL과 검증 결과를 반환합니다.",
+      inputSchema: {
+        handle: defaultHandle,
+        baseUrl: z.string().optional(),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "render_preview", {
+          ...args,
+          handle: resolveHandle(auth, args.handle),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "validate_page",
+    {
+      title: "페이지 검증",
+      description:
+        "모바일 깨짐·URL 누락·그리드 규칙 등 Page Schema 검증을 수행합니다.",
+      inputSchema: {
+        handle: defaultHandle,
+        schema: z.record(z.string(), z.unknown()).optional(),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "validate_page", {
+          ...args,
+          handle: resolveHandle(auth, args.handle),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "save_draft",
+    {
+      title: "초안 저장",
+      description: "Page Schema 초안을 버전으로 저장하고 디자인/링크를 동기화합니다.",
+      inputSchema: {
+        handle: defaultHandle,
+        schema: z.record(z.string(), z.unknown()).optional(),
+        label: z.string().optional(),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "save_draft", {
+          ...args,
+          handle: resolveHandle(auth, args.handle),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "publish_page",
+    {
+      title: "페이지 게시",
+      description:
+        "검증 후 Page Schema를 게시합니다. 오류 시 force:true로 강제 가능.",
+      inputSchema: {
+        handle: defaultHandle,
+        schema: z.record(z.string(), z.unknown()).optional(),
+        label: z.string().optional(),
+        force: z.boolean().optional(),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "publish_page", {
+          ...args,
+          handle: resolveHandle(auth, args.handle),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "restore_version",
+    {
+      title: "버전 복원",
+      description: "schemaVersions의 versionId로 이전 Page Schema를 복원·게시합니다.",
+      inputSchema: {
+        handle: defaultHandle,
+        versionId: z.string(),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "restore_version", {
+          ...args,
+          handle: resolveHandle(auth, args.handle),
         }),
       ),
   );
@@ -742,26 +1060,17 @@ export function createOmoBioMcpServer(
               type: "text" as const,
               text: [
                 `OMO Bio 디자인을 MCP로 편집합니다. handle=${target}`,
-                "중요: 이미지를 '그대로 복제'하지 말고, 사용자가 요청한 필드만 도구로 수정하세요.",
+                "권장: open_profile_designer → list_templates → create_page_from_template → update_page_content/update_section → validate_page → publish_page",
+                "중요: CSS(set_custom_css)를 직접 쓰지 마세요. Page Schema + 디자인 토큰만 사용합니다.",
                 "",
-                "워크플로:",
-                "1) list_design_capabilities — 편집 가능 필드·아이콘·레시피 확인",
-                "2) get_page — design/links/layoutDebug/linkId 확인",
-                "3) upload_asset(dataUri|file) → {url,width,height} 을 logoImageUrl/iconImageUrl/heroImageUrl에 연결",
-                "4) update_design — tokens, featuredFill/Text, headline, proofItems, contentMaxWidth, typography, sections",
-                "5) upsert_section — title/columns/gap|sectionGap/rowGap/columnGap/items",
-                "6) upsert_link — linkId + span/mobileSpan/rowSpan, iconImageUrl, subtitlePlacement, arrowStyle, cardHeight 등",
-                "7) get_preview_url — 공개 URL 안내 후 사용자 확인",
+                "레거시 워크플로(스키마 없을 때만):",
+                "1) list_design_capabilities",
+                "2) get_page",
+                "3) upload_asset → logo/icon/hero URL",
+                "4) update_design / upsert_section / upsert_link",
+                "5) get_preview_url / render_preview",
                 "",
-                "레이아웃 팁:",
-                "- 2열 그리드: section columns:2 + 각 링크 span:1 (자동 전체폭 없음)",
-                "- 라임 CTA: featuredFill/featuredText + featured:true + leadingIconUrl + subtitlePlacement",
-                "- 통계바: proofItems:[{value,label}]",
-                "- 헤드라인 강조: headlineSegments 또는 headline + headlineHighlight",
-                "- 타이포: desktopFontSize/mobileFontSize/lineHeight/letterSpacing",
-                "- customCss는 네이티브 필드로 안 될 때만 (8000자 초과 오류)",
-                "",
-                "한국어로 진행하고, 변경 전후 어떤 도구를 썼는지 짧게 보고하세요.",
+                "한국어로 진행하고, 변경에 쓴 도구를 짧게 보고하세요.",
               ].join("\n"),
             },
           },

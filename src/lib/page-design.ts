@@ -162,6 +162,11 @@ export type PageDesign = {
   avatarImageUrl?: string;
   customCss?: string;
   wizard?: WizardState;
+  /** Structured page schema (GPT/MCP); renderer owns CSS */
+  pageSchema?: unknown;
+  pageSchemaDraft?: unknown;
+  schemaVersions?: unknown[];
+  publishedSchemaVersionId?: string;
 };
 
 const LAYOUTS = new Set<BioLayout>(["stack", "bento", "list"]);
@@ -607,6 +612,12 @@ export function parsePageDesign(raw: unknown): PageDesign {
           answers,
         }
       : undefined,
+    pageSchema: data.pageSchema,
+    pageSchemaDraft: data.pageSchemaDraft,
+    schemaVersions: Array.isArray(data.schemaVersions)
+      ? data.schemaVersions
+      : undefined,
+    publishedSchemaVersionId: asString(data.publishedSchemaVersionId) || undefined,
   };
 }
 
