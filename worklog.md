@@ -154,3 +154,7 @@
 
 [2026-08-07 07:00 KST]
 - PR #22 main 머지 (`01bff00`). Production 자동 배포가 바로 안 떠서 main에 트리거 커밋 푸시.
+
+[2026-08-07 07:03 KST]
+- Production 배포 완료 (`8dd14e5`). 라이브 `/designer` 200, `x-matched-path=/designer` 확인.
+- PR #22 MERGED. Page Schema MCP Apps + 템플릿 엔진 프로덕션 반영.
