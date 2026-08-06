@@ -68,3 +68,10 @@
 - PR #13 main 머지 완료 → 프로덕션 배포 `8716a31`.
 - 검증: `POST /api/auth/login` QA 계정 → 303 `/settings` + 세션 쿠키. 잘못된 비밀번호 → `/login?error=...`.
 - 템플릿 API도 세션으로 paper-note/fairway 적용 확인.
+
+
+[2026-08-06 15:27 KST]
+- 사용자: FMGS 목업 한계 피드백 + `/fmg` 캡처 요청 + P0 기능 개발 요청.
+- 캡처: `/opt/cursor/artifacts/screenshots/fmg-top.webp`, `fmg-bottom.webp` (라임 CTA / 네이비 2열 / 1열 보조 링크 확인).
+- P0 구현: featuredFill·tokens·sections·data-* 선택자, upsert_link(sortOrder/span/variant/section), upsert_section, get_preview_url.
+- `/fmg` DB를 네이티브 tokens/sections로 이전(커스텀 CSS는 호버·높이만 유지).

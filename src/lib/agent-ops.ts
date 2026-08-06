@@ -15,11 +15,13 @@ import {
 } from "@/lib/page-bundle";
 import {
   mergePageDesign,
+  parseDesignSection,
   parsePageDesign,
   sanitizeCustomCss,
   sanitizeHttpsUrl,
   type PageDesign,
 } from "@/lib/page-design";
+import { publicPageUrl, siteOrigin } from "@/lib/site-url";
 import {
   getWizardStep,
   nextWizardStepId,
@@ -110,6 +112,8 @@ export async function agentHealth(auth: Extract<McpAuthResult, { ok: true }>) {
       "set_background_image",
       "set_custom_css",
       "update_design",
+      "upsert_section",
+      "get_preview_url",
     ],
   };
 }
@@ -197,18 +201,40 @@ export async function agentUpsertLink(
   const featured = body.featured === true;
   const visible = body.isVisible !== false && body.visible !== false;
 
+  const patch: Partial<typeof links.$inferInsert> = {
+    label,
+    sublabel,
+    url: url.data,
+    featured,
+    visible,
+    isVisible: visible,
+    updatedAt: new Date(),
+  };
+
+  if (typeof body.sortOrder === "number" && Number.isFinite(body.sortOrder)) {
+    patch.sortOrder = Math.max(0, Math.floor(body.sortOrder));
+    patch.position = patch.sortOrder;
+  }
+  if (typeof body.span === "number" && Number.isFinite(body.span)) {
+    patch.span = Math.min(3, Math.max(1, Math.floor(body.span)));
+  }
+  if (typeof body.variant === "string" && body.variant.trim()) {
+    patch.variant = body.variant.trim().slice(0, 32);
+  }
+  const section =
+    typeof body.section === "string"
+      ? body.section
+      : typeof body.groupId === "string"
+        ? body.groupId
+        : undefined;
+  if (typeof section === "string") {
+    patch.section = section.trim().slice(0, 64);
+  }
+
   if (typeof body.linkId === "string" && body.linkId) {
     await db
       .update(links)
-      .set({
-        label,
-        sublabel,
-        url: url.data,
-        featured,
-        visible,
-        isVisible: visible,
-        updatedAt: new Date(),
-      })
+      .set(patch)
       .where(and(eq(links.id, body.linkId), eq(links.pageId, page.id)));
   } else {
     const [last] = await db
@@ -217,7 +243,10 @@ export async function agentUpsertLink(
       .where(eq(links.pageId, page.id))
       .orderBy(desc(links.sortOrder))
       .limit(1);
-    const sortOrder = (last?.sortOrder ?? -1) + 1;
+    const sortOrder =
+      typeof patch.sortOrder === "number"
+        ? patch.sortOrder
+        : (last?.sortOrder ?? -1) + 1;
     await db.insert(links).values({
       pageId: page.id,
       label,
@@ -228,6 +257,9 @@ export async function agentUpsertLink(
       isVisible: visible,
       sortOrder,
       position: sortOrder,
+      span: typeof patch.span === "number" ? patch.span : 1,
+      variant: typeof patch.variant === "string" ? patch.variant : "line",
+      section: typeof patch.section === "string" ? patch.section : "",
     });
   }
 
@@ -620,6 +652,9 @@ export async function agentUpdateDesign(
     "buttonShadow",
     "buttonFill",
     "buttonText",
+    "featuredFill",
+    "featuredText",
+    "featuredBorder",
     "size",
     "radius",
     "font",
@@ -632,12 +667,32 @@ export async function agentUpdateDesign(
   }
   if (body.buttonFill === null) patch.buttonFill = undefined;
   if (body.buttonText === null) patch.buttonText = undefined;
+  if (body.featuredFill === null) patch.featuredFill = undefined;
+  if (body.featuredText === null) patch.featuredText = undefined;
+  if (body.featuredBorder === null) patch.featuredBorder = undefined;
   if (typeof body.scrim === "number") patch.scrim = body.scrim;
   if (typeof body.templateId === "string") patch.templateId = body.templateId;
+  if (body.showHandle === false) patch.showHandle = false;
+  if (body.showHandle === true) patch.showHandle = true;
+  if (body.showAvatar === false) patch.showAvatar = false;
+  if (body.showAvatar === true) patch.showAvatar = true;
+
+  if (body.tokens && typeof body.tokens === "object" && !Array.isArray(body.tokens)) {
+    patch.tokens = body.tokens as PageDesign["tokens"];
+  }
+  if (Array.isArray(body.sections)) {
+    patch.sections = body.sections as PageDesign["sections"];
+  }
 
   let design: PageDesign;
   try {
     design = mergePageDesign(loaded.page.design, patch);
+    if (patch.tokens) {
+      design.tokens = parsePageDesign({ tokens: patch.tokens }).tokens;
+    }
+    if (patch.sections) {
+      design.sections = parsePageDesign({ sections: patch.sections }).sections;
+    }
   } catch (e) {
     return err(e instanceof Error ? e.message : "Invalid design.");
   }
@@ -659,6 +714,67 @@ export async function agentUpdateDesign(
     ok: true,
     design: parsePageDesign(fresh.design),
     page: await summarize(fresh),
+  };
+}
+
+export async function agentUpsertSection(
+  auth: Extract<McpAuthResult, { ok: true }>,
+  body: Record<string, unknown>,
+): Promise<AgentResult> {
+  const loaded = await loadScopedPage(auth, body.handle);
+  if (!loaded.ok) return loaded;
+
+  if (body.clear === true) {
+    const design = parsePageDesign(loaded.page.design);
+    delete design.sections;
+    await saveDesign(loaded.page, design);
+    const fresh = (await getPageByHandle(loaded.handle)) ?? loaded.page;
+    return { ok: true, design: parsePageDesign(fresh.design), page: await summarize(fresh) };
+  }
+
+  const section = parseDesignSection(body);
+  if (!section) {
+    return err("section id가 필요합니다. 예: { id, title, columns, items, order }");
+  }
+
+  const design = parsePageDesign(loaded.page.design);
+  const current = [...(design.sections ?? [])];
+  const idx = current.findIndex((s) => s.id === section.id);
+  if (idx >= 0) {
+    current[idx] = { ...current[idx], ...section };
+  } else {
+    current.push(section);
+  }
+  current.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  design.sections = current;
+  await saveDesign(loaded.page, design);
+  const fresh = (await getPageByHandle(loaded.handle)) ?? loaded.page;
+  return {
+    ok: true,
+    sections: parsePageDesign(fresh.design).sections,
+    design: parsePageDesign(fresh.design),
+    page: await summarize(fresh),
+  };
+}
+
+export async function agentGetPreviewUrl(
+  auth: Extract<McpAuthResult, { ok: true }>,
+  body: Record<string, unknown>,
+): Promise<AgentResult> {
+  const loaded = await loadScopedPage(auth, body.handle);
+  if (!loaded.ok) return loaded;
+  const base =
+    typeof body.baseUrl === "string" && body.baseUrl.trim()
+      ? body.baseUrl.trim().replace(/\/$/, "")
+      : siteOrigin();
+  const url = publicPageUrl(loaded.handle, base);
+  return {
+    ok: true,
+    handle: loaded.handle,
+    previewUrl: url,
+    publicUrl: url,
+    note:
+      "변경 후 이 URL을 새로고침해 확인하세요. 스크린샷 렌더는 아직 제공하지 않습니다 (get_preview_url).",
   };
 }
 
@@ -697,6 +813,10 @@ export async function runAgentAction(
       return agentSetCustomCss(auth, body);
     case "update_design":
       return agentUpdateDesign(auth, body);
+    case "upsert_section":
+      return agentUpsertSection(auth, body);
+    case "get_preview_url":
+      return agentGetPreviewUrl(auth, body);
     default:
       return err(`Unknown action: ${action}`);
   }

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import NextLink from "next/link";
 import { and, asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getDb } from "@/db";
-import { links, pages } from "@/db/schema";
+import { links, pages, type Link } from "@/db/schema";
 import { FairwayScene } from "@/components/fairway-scene";
+import { groupLinksBySections } from "@/lib/link-sections";
 import { designAttrs, parsePageDesign } from "@/lib/page-design";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,42 @@ export async function generateMetadata({
   };
 }
 
+function BioLinkCard({ link }: { link: Link }) {
+  const span = link.span >= 2 || link.featured ? 2 : link.span;
+  const variant =
+    link.featured || link.variant === "featured"
+      ? "featured"
+      : link.variant === "full"
+        ? "full"
+        : link.variant || "card";
+  const role = link.featured ? "cta" : "link";
+
+  return (
+    <a
+      className={
+        link.featured ? "bio-link bio-link--featured" : "bio-link"
+      }
+      href={link.url}
+      target="_blank"
+      rel="noopener noreferrer nofollow"
+      data-link-id={link.id}
+      data-role={role}
+      data-variant={variant}
+      data-span={String(span)}
+      data-group={link.section || undefined}
+      data-section={link.section || undefined}
+    >
+      <span className="bio-link-body">
+        <span className="bio-link-title">{link.label}</span>
+        {link.sublabel ? (
+          <span className="bio-link-sub">{link.sublabel}</span>
+        ) : null}
+      </span>
+      <span className="bio-link-mark">›</span>
+    </a>
+  );
+}
+
 export default async function PublicPage({
   params,
 }: {
@@ -85,6 +122,35 @@ export default async function PublicPage({
   if (attrs.buttonText) {
     stageStyle["--button-text"] = attrs.buttonText;
   }
+  if (attrs.featuredFill) {
+    stageStyle["--featured-fill"] = attrs.featuredFill;
+  }
+  if (attrs.featuredText) {
+    stageStyle["--featured-text"] = attrs.featuredText;
+  }
+  if (attrs.featuredBorder) {
+    stageStyle["--featured-border"] = attrs.featuredBorder;
+  }
+  if (attrs.tokens?.pageBackground) {
+    stageStyle["--page-bg"] = attrs.tokens.pageBackground;
+  }
+  if (attrs.tokens?.cardBackground) {
+    stageStyle["--card-bg"] = attrs.tokens.cardBackground;
+  }
+  if (attrs.tokens?.cardText) {
+    stageStyle["--card-fg"] = attrs.tokens.cardText;
+  }
+  if (attrs.tokens?.mutedText) {
+    stageStyle["--muted-fg"] = attrs.tokens.mutedText;
+  }
+  if (attrs.tokens?.borderColor) {
+    stageStyle["--border-color"] = attrs.tokens.borderColor;
+  }
+
+  const sectionViews = groupLinksBySections(pageLinks, attrs.sections);
+  const hasTokens = Boolean(
+    attrs.tokens && Object.values(attrs.tokens).some(Boolean),
+  );
 
   return (
     <div
@@ -100,6 +166,8 @@ export default async function PublicPage({
       data-radius={attrs.radius}
       data-font={attrs.font}
       data-effect-card={attrs.effectCard}
+      data-featured-style={attrs.featuredFill ? "custom" : undefined}
+      data-tokens={hasTokens ? "1" : undefined}
       style={stageStyle}
     >
       {attrs.backgroundImageUrl ? (
@@ -134,51 +202,61 @@ export default async function PublicPage({
       ) : null}
 
       <main className="bio" data-layout={attrs.layout}>
-        <header className="bio-head bio-rise">
-          <div className="bio-avatar">
-            {attrs.avatarImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={attrs.avatarImageUrl}
-                alt=""
-                width={92}
-                height={92}
-              />
-            ) : (
-              avatar
-            )}
-          </div>
-          <h1 className="bio-name">{page.displayName}</h1>
-          <p className="bio-handle">/{page.handle}</p>
-          {page.bio ? <p className="bio-desc">{page.bio}</p> : null}
+        <header className="bio-head bio-rise" data-role="header">
+          {attrs.showAvatar ? (
+            <div className="bio-avatar" data-role="avatar">
+              {attrs.avatarImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={attrs.avatarImageUrl}
+                  alt=""
+                  width={92}
+                  height={92}
+                />
+              ) : (
+                avatar
+              )}
+            </div>
+          ) : null}
+          <h1 className="bio-name" data-role="name">
+            {page.displayName}
+          </h1>
+          {attrs.showHandle ? (
+            <p className="bio-handle" data-role="handle">
+              /{page.handle}
+            </p>
+          ) : null}
+          {page.bio ? (
+            <p className="bio-desc" data-role="bio">
+              {page.bio}
+            </p>
+          ) : null}
         </header>
 
-        <section className="bio-section bio-rise">
-          <div className="bio-links">
-            {pageLinks.map((link) => (
-              <a
-                key={link.id}
-                className={
-                  link.featured ? "bio-link bio-link--featured" : "bio-link"
-                }
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-              >
-                <span className="bio-link-body">
-                  <span className="bio-link-title">{link.label}</span>
-                  {link.sublabel ? (
-                    <span className="bio-link-sub">{link.sublabel}</span>
-                  ) : null}
-                </span>
-                <span className="bio-link-mark">›</span>
-              </a>
-            ))}
-          </div>
-        </section>
+        {sectionViews.map((section) => (
+          <section
+            key={section.id}
+            className="bio-section bio-rise"
+            data-section={section.id}
+            data-role="section"
+          >
+            {section.title ? (
+              <div className="bio-section-label">{section.title}</div>
+            ) : null}
+            <div
+              className="bio-links"
+              data-columns={String(section.columns)}
+              data-group={section.id}
+            >
+              {section.links.map((link) => (
+                <BioLinkCard key={link.id} link={link} />
+              ))}
+            </div>
+          </section>
+        ))}
 
-        <footer className="bio-foot bio-rise">
-          <Link href="/">OMO Bio로 만든 페이지</Link>
+        <footer className="bio-foot bio-rise" data-role="footer">
+          <NextLink href="/">OMO Bio로 만든 페이지</NextLink>
         </footer>
       </main>
     </div>

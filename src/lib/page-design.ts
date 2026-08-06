@@ -53,6 +53,28 @@ export type WizardState = {
   answers: Record<string, string>;
 };
 
+/** Page-level color tokens — separate from per-button fills. */
+export type DesignTokens = {
+  pageBackground?: string;
+  cardBackground?: string;
+  cardText?: string;
+  mutedText?: string;
+  featuredBackground?: string;
+  featuredText?: string;
+  borderColor?: string;
+};
+
+export type DesignSection = {
+  id: string;
+  title?: string;
+  /** 1 = full width stack, 2+ = grid columns */
+  columns?: 1 | 2 | 3;
+  layout?: "full" | "grid" | "stack";
+  order?: number;
+  /** Link ids (preferred) or stable keys matched via link.section */
+  items?: string[];
+};
+
 export type PageDesign = {
   templateId?: string;
   layout?: BioLayout;
@@ -63,10 +85,20 @@ export type PageDesign = {
   card?: BioCard;
   buttonStyle?: BioButtonStyle;
   buttonShadow?: BioButtonShadow;
-  /** Optional button background override (css color) */
+  /** Default (non-featured) button background */
   buttonFill?: string;
-  /** Optional button label color override */
+  /** Default (non-featured) button label color */
   buttonText?: string;
+  /** Featured CTA background — does NOT affect normal cards */
+  featuredFill?: string;
+  /** Featured CTA label color */
+  featuredText?: string;
+  /** Featured CTA border color */
+  featuredBorder?: string;
+  tokens?: DesignTokens;
+  sections?: DesignSection[];
+  showHandle?: boolean;
+  showAvatar?: boolean;
   size?: BioSize;
   radius?: BioRadius;
   font?: BioFont;
@@ -263,6 +295,69 @@ export function parsePageDesign(raw: unknown): PageDesign {
   const buttonStyle =
     pickEnum(data.buttonStyle, BUTTON_STYLES) ?? cardToButtonStyle(card);
 
+  const tokensRaw =
+    data.tokens && typeof data.tokens === "object" && !Array.isArray(data.tokens)
+      ? (data.tokens as Record<string, unknown>)
+      : null;
+  const tokens: DesignTokens | undefined = tokensRaw
+    ? {
+        pageBackground: sanitizeCssColor(asString(tokensRaw.pageBackground)),
+        cardBackground: sanitizeCssColor(asString(tokensRaw.cardBackground)),
+        cardText: sanitizeCssColor(asString(tokensRaw.cardText)),
+        mutedText: sanitizeCssColor(asString(tokensRaw.mutedText)),
+        featuredBackground: sanitizeCssColor(
+          asString(tokensRaw.featuredBackground),
+        ),
+        featuredText: sanitizeCssColor(asString(tokensRaw.featuredText)),
+        borderColor: sanitizeCssColor(asString(tokensRaw.borderColor)),
+      }
+    : undefined;
+  const hasToken = tokens && Object.values(tokens).some(Boolean);
+
+  const sectionsRaw = Array.isArray(data.sections) ? data.sections : [];
+  const sections: DesignSection[] = [];
+  for (const raw of sectionsRaw.slice(0, 24)) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const row = raw as Record<string, unknown>;
+    const id = asString(row.id).slice(0, 64);
+    if (!id) continue;
+    const columnsRaw = typeof row.columns === "number" ? row.columns : 1;
+    const columns = ([1, 2, 3] as const).includes(columnsRaw as 1 | 2 | 3)
+      ? (columnsRaw as 1 | 2 | 3)
+      : 1;
+    const layoutRaw = asString(row.layout);
+    const layout =
+      layoutRaw === "full" || layoutRaw === "grid" || layoutRaw === "stack"
+        ? layoutRaw
+        : columns > 1
+          ? "grid"
+          : "stack";
+    const items = Array.isArray(row.items)
+      ? row.items
+          .filter((v): v is string => typeof v === "string")
+          .map((v) => v.slice(0, 80))
+          .slice(0, 48)
+      : undefined;
+    sections.push({
+      id,
+      title: asString(row.title).slice(0, 80) || undefined,
+      columns,
+      layout,
+      order:
+        typeof row.order === "number" && Number.isFinite(row.order)
+          ? row.order
+          : undefined,
+      items: items && items.length > 0 ? items : undefined,
+    });
+  }
+
+  const featuredFill =
+    sanitizeCssColor(asString(data.featuredFill)) ||
+    tokens?.featuredBackground;
+  const featuredText =
+    sanitizeCssColor(asString(data.featuredText)) || tokens?.featuredText;
+  const featuredBorder = sanitizeCssColor(asString(data.featuredBorder));
+
   return {
     templateId: asString(data.templateId).slice(0, 64) || undefined,
     layout: pickEnum(data.layout, LAYOUTS),
@@ -272,8 +367,16 @@ export function parsePageDesign(raw: unknown): PageDesign {
     card: card ?? buttonStyleToCard(buttonStyle),
     buttonStyle,
     buttonShadow: pickEnum(data.buttonShadow, BUTTON_SHADOWS),
-    buttonFill: sanitizeCssColor(asString(data.buttonFill)),
-    buttonText: sanitizeCssColor(asString(data.buttonText)),
+    buttonFill:
+      sanitizeCssColor(asString(data.buttonFill)) || tokens?.cardBackground,
+    buttonText: sanitizeCssColor(asString(data.buttonText)) || tokens?.cardText,
+    featuredFill,
+    featuredText,
+    featuredBorder,
+    tokens: hasToken ? tokens : undefined,
+    sections: sections.length > 0 ? sections : undefined,
+    showHandle: data.showHandle === false ? false : undefined,
+    showAvatar: data.showAvatar === false ? false : undefined,
     size: pickEnum(data.size, SIZES),
     radius: pickEnum(data.radius, RADII),
     font: pickEnum(data.font, FONTS),
@@ -348,6 +451,7 @@ export function mergePageDesign(
 export function designAttrs(design: PageDesign) {
   const button =
     design.buttonStyle || cardToButtonStyle(design.card) || "elevated";
+  const tokens = design.tokens;
   return {
     layout: design.layout || "stack",
     pattern: design.pattern && design.pattern !== "none" ? design.pattern : undefined,
@@ -359,8 +463,15 @@ export function designAttrs(design: PageDesign) {
       design.buttonShadow && design.buttonShadow !== "none"
         ? design.buttonShadow
         : undefined,
-    buttonFill: design.buttonFill,
-    buttonText: design.buttonText,
+    buttonFill: design.buttonFill || tokens?.cardBackground,
+    buttonText: design.buttonText || tokens?.cardText,
+    featuredFill: design.featuredFill || tokens?.featuredBackground,
+    featuredText: design.featuredText || tokens?.featuredText,
+    featuredBorder: design.featuredBorder || tokens?.borderColor,
+    tokens,
+    sections: design.sections,
+    showHandle: design.showHandle !== false,
+    showAvatar: design.showAvatar !== false,
     size: design.size,
     radius: design.radius,
     font: design.font,
@@ -373,4 +484,10 @@ export function designAttrs(design: PageDesign) {
     avatarImageUrl: design.avatarImageUrl,
     customCss: design.customCss,
   };
+}
+
+export function parseDesignSection(raw: unknown): DesignSection | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const parsed = parsePageDesign({ sections: [raw] });
+  return parsed.sections?.[0] ?? null;
 }

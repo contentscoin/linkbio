@@ -38,6 +38,10 @@ export function summarizePageBundle(page: Page, pageLinks: Link[]) {
       featured: link.featured,
       visible: link.visible && link.isVisible,
       sortOrder: link.sortOrder,
+      span: link.span,
+      variant: link.variant,
+      section: link.section || undefined,
+      groupId: link.section || undefined,
     })),
   };
 }

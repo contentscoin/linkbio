@@ -78,7 +78,8 @@ export function createOmoBioMcpServer(
     "upsert_link",
     {
       title: "링크 추가/수정",
-      description: "링크 버튼을 만들거나 수정합니다.",
+      description:
+        "링크 버튼을 만들거나 수정합니다. sortOrder/span/variant/section(groupId) 지원.",
       inputSchema: {
         handle: defaultHandle,
         linkId: z.string().optional(),
@@ -87,6 +88,11 @@ export function createOmoBioMcpServer(
         url: z.string(),
         featured: z.boolean().optional(),
         isVisible: z.boolean().optional(),
+        sortOrder: z.number().optional(),
+        span: z.number().min(1).max(3).optional(),
+        variant: z.string().optional(),
+        section: z.string().optional().describe("섹션/그룹 id"),
+        groupId: z.string().optional().describe("section 별칭"),
       },
     },
     async (args) =>
@@ -285,7 +291,7 @@ export function createOmoBioMcpServer(
     {
       title: "디자인 세부 수정",
       description:
-        "layout/pattern/motion/effect/card/size/radius/font 등 디자인 필드를 수정합니다.",
+        "layout/버튼/CTA(featuredFill)/tokens/sections 등 디자인 필드를 수정합니다. buttonFill은 일반 카드만, featuredFill은 CTA만 적용됩니다.",
       inputSchema: {
         handle: defaultHandle,
         theme: z.string().optional(),
@@ -299,17 +305,98 @@ export function createOmoBioMcpServer(
         buttonShadow: z.string().optional(),
         buttonFill: z.string().optional(),
         buttonText: z.string().optional(),
+        featuredFill: z.string().optional(),
+        featuredText: z.string().optional(),
+        featuredBorder: z.string().optional(),
         size: z.string().optional(),
         radius: z.string().optional(),
         font: z.string().optional(),
         effectCard: z.string().optional(),
         scrim: z.number().optional(),
         templateId: z.string().optional(),
+        showHandle: z.boolean().optional(),
+        showAvatar: z.boolean().optional(),
+        tokens: z
+          .object({
+            pageBackground: z.string().optional(),
+            cardBackground: z.string().optional(),
+            cardText: z.string().optional(),
+            mutedText: z.string().optional(),
+            featuredBackground: z.string().optional(),
+            featuredText: z.string().optional(),
+            borderColor: z.string().optional(),
+          })
+          .optional(),
+        sections: z
+          .array(
+            z.object({
+              id: z.string(),
+              title: z.string().optional(),
+              columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+              layout: z.enum(["full", "grid", "stack"]).optional(),
+              order: z.number().optional(),
+              items: z.array(z.string()).optional(),
+            }),
+          )
+          .optional(),
       },
     },
     async (args) =>
       textResult(
         await runAgentAction(auth, "update_design", {
+          ...args,
+          handle:
+            handleOptional(args.handle) ??
+            (auth.scope === "page" ? auth.handle : ""),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "upsert_section",
+    {
+      title: "섹션 추가/수정",
+      description:
+        "‘핵심 서비스’/‘바로가기’ 등 섹션 레이아웃을 설정합니다. items에는 linkId 또는 groupId(section)를 넣습니다.",
+      inputSchema: {
+        handle: defaultHandle,
+        id: z.string(),
+        title: z.string().optional(),
+        columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+        layout: z.enum(["full", "grid", "stack"]).optional(),
+        order: z.number().optional(),
+        items: z.array(z.string()).optional(),
+        clear: z.boolean().optional().describe("true면 모든 섹션 제거"),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "upsert_section", {
+          ...args,
+          handle:
+            handleOptional(args.handle) ??
+            (auth.scope === "page" ? auth.handle : ""),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "get_preview_url",
+    {
+      title: "미리보기 URL",
+      description:
+        "공개 페이지 URL을 반환합니다. MCP로 변경 후 이 URL을 새로고침해 확인하세요.",
+      inputSchema: {
+        handle: defaultHandle,
+        baseUrl: z
+          .string()
+          .optional()
+          .describe("기본값: 사이트 오리진. 예: https://bio.omo.co.kr"),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "get_preview_url", {
           ...args,
           handle:
             handleOptional(args.handle) ??

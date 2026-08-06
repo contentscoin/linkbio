@@ -14,16 +14,27 @@
 .mcp-tool-list{color:var(--ink-soft);margin:0 0 16px;padding-left:20px;font-size:13.5px;line-height:1.75}
 .mcp-tool-list code{font-size:12px}
 
-/* Button design (Linkstory-inspired) */
-[data-button=solid] .bio-link{background:var(--button-fill,var(--accent));color:var(--button-text,var(--on-accent,#fff));border-color:transparent;box-shadow:none}
-[data-button=solid] .bio-link-sub{color:color-mix(in srgb,var(--button-text,var(--on-accent,#fff)) 78%,transparent)}
-[data-button=soft] .bio-link{background:var(--button-fill,color-mix(in srgb,var(--accent) 16%,var(--card)));color:var(--button-text,var(--fg));border-color:color-mix(in srgb,var(--accent) 22%,var(--line));box-shadow:none}
-[data-button=outline] .bio-link{background:var(--button-fill,transparent);color:var(--button-text,var(--fg));border:2px solid var(--accent);box-shadow:none}
-[data-button=ghost] .bio-link{background:var(--button-fill,transparent);color:var(--button-text,var(--fg));border:1px solid color-mix(in srgb,var(--fg) 18%,transparent);box-shadow:none}
-[data-button=glass] .bio-link{background:var(--button-fill,color-mix(in srgb,var(--card) 55%,transparent));color:var(--button-text,var(--fg));border-color:color-mix(in srgb,var(--fg) 14%,transparent);-webkit-backdrop-filter:blur(14px) saturate(1.2);box-shadow:none}
-[data-button=elevated] .bio-link{background:var(--button-fill,var(--card));color:var(--button-text,var(--fg));border-color:transparent;box-shadow:0 10px 26px color-mix(in srgb,var(--fg) 16%,transparent)}
-[data-button=sticker] .bio-link{background:var(--button-fill,var(--card));color:var(--button-text,var(--fg));border:2px solid var(--fg);box-shadow:4px 4px 0 var(--fg)}
-[data-button=solid] .bio-link--featured,[data-button=soft] .bio-link--featured{filter:brightness(1.03)}
+/* Button design (Linkstory-inspired)
+   buttonFill applies to normal cards only; featured uses --featured-* tokens. */
+[data-button=solid] .bio-link:not(.bio-link--featured){background:var(--button-fill,var(--accent));color:var(--button-text,var(--on-accent,#fff));border-color:transparent;box-shadow:none}
+[data-button=solid] .bio-link:not(.bio-link--featured) .bio-link-sub{color:color-mix(in srgb,var(--button-text,var(--on-accent,#fff)) 78%,transparent)}
+[data-button=soft] .bio-link:not(.bio-link--featured){background:var(--button-fill,color-mix(in srgb,var(--accent) 16%,var(--card)));color:var(--button-text,var(--fg));border-color:color-mix(in srgb,var(--accent) 22%,var(--line));box-shadow:none}
+[data-button=outline] .bio-link:not(.bio-link--featured){background:var(--button-fill,transparent);color:var(--button-text,var(--fg));border:2px solid var(--accent);box-shadow:none}
+[data-button=ghost] .bio-link:not(.bio-link--featured){background:var(--button-fill,transparent);color:var(--button-text,var(--fg));border:1px solid color-mix(in srgb,var(--fg) 18%,transparent);box-shadow:none}
+[data-button=glass] .bio-link:not(.bio-link--featured){background:var(--button-fill,color-mix(in srgb,var(--card) 55%,transparent));color:var(--button-text,var(--fg));border-color:color-mix(in srgb,var(--fg) 14%,transparent);-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);box-shadow:none}
+[data-button=elevated] .bio-link:not(.bio-link--featured){background:var(--button-fill,var(--card));color:var(--button-text,var(--fg));border-color:transparent;box-shadow:0 10px 26px color-mix(in srgb,var(--fg) 16%,transparent)}
+[data-button=sticker] .bio-link:not(.bio-link--featured){background:var(--button-fill,var(--card));color:var(--button-text,var(--fg));border:2px solid var(--fg);box-shadow:4px 4px 0 var(--fg)}
+.bio-stage[data-featured-style=custom] .bio-link--featured{background:var(--featured-fill,var(--accent))!important;color:var(--featured-text,var(--on-accent,#fff))!important;border-color:var(--featured-border,transparent)!important;box-shadow:0 12px 30px color-mix(in srgb,var(--featured-fill,var(--accent)) 35%,transparent)}
+.bio-stage[data-featured-style=custom] .bio-link--featured .bio-link-title,
+.bio-stage[data-featured-style=custom] .bio-link--featured .bio-link-sub,
+.bio-stage[data-featured-style=custom] .bio-link--featured .bio-link-mark{color:inherit!important}
+.bio-links[data-columns="2"]{grid-template-columns:repeat(2,minmax(0,1fr));display:grid;gap:var(--gap)}
+.bio-links[data-columns="3"]{grid-template-columns:repeat(3,minmax(0,1fr));display:grid;gap:var(--gap)}
+.bio-links[data-columns="1"]{display:grid;gap:var(--gap);grid-template-columns:1fr}
+.bio-link[data-span="2"],.bio-link[data-variant=full]{grid-column:1/-1}
+.bio-stage[data-tokens="1"]{background:var(--page-bg,var(--bg))}
+.bio-stage[data-tokens="1"] .bio-link:not(.bio-link--featured){background:var(--button-fill,var(--card-bg,var(--card)));color:var(--button-text,var(--card-fg,var(--fg)));border-color:var(--border-color,var(--line))}
+.bio-stage[data-tokens="1"] .bio-link-sub{color:var(--muted-fg,var(--fg-dim))}
 [data-shadow=soft] .bio-link{box-shadow:0 6px 18px color-mix(in srgb,var(--fg) 14%,transparent)}
 [data-shadow=hard] .bio-link{box-shadow:4px 4px 0 color-mix(in srgb,var(--fg) 55%,transparent)}
 [data-shadow=float] .bio-link{box-shadow:0 14px 34px color-mix(in srgb,var(--fg) 20%,transparent)}
