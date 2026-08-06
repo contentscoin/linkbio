@@ -55,9 +55,51 @@ export default function HomePage() {
         </Link>
       </div>
 
+      <section className="panel landing-process" aria-labelledby="process-title">
+        <h2 id="process-title">이렇게 만듭니다</h2>
+        <ol className="landing-steps">
+          <li>
+            <strong>무료로 가입</strong>
+            <span>주소만 정하면 Bioomo 페이지가 바로 생깁니다.</span>
+          </li>
+          <li>
+            <strong>MCP 연결</strong>
+            <span>설정에서 Cursor·Claude 등에 Bioomo MCP를 붙입니다.</span>
+          </li>
+          <li>
+            <strong>대화로 고도화</strong>
+            <span>링크·카피·레이아웃·디자인을 MCP로 계속 다듬습니다.</span>
+          </li>
+        </ol>
+      </section>
+
+      <section className="panel landing-sample" aria-labelledby="sample-title">
+        <h2 id="sample-title">실제 예시 · FMGS</h2>
+        <p className="landing-sample-lede">
+          골프 마케팅 브랜드 FMGS 페이지입니다. 상담 CTA, 핵심 서비스, 바로가기를
+          Bioomo로 구성하고 MCP로 디자인을 맞춰 가는 과정의 샘플입니다.
+        </p>
+        <div className="landing-sample-frame">
+          <iframe
+            className="landing-sample-iframe"
+            src="/fmg"
+            title="FMGS Bioomo 샘플 미리보기"
+            loading="lazy"
+          />
+        </div>
+        <div className="landing-sample-meta">
+          <span>
+            골퍼 DB · 파트너 코스 · 대회 수치와 서비스 카드가 한 페이지에 모입니다.
+          </span>
+          <Link className="btn btn--primary" href="/fmg">
+            샘플 페이지 보기
+          </Link>
+        </div>
+      </section>
+
       <p className="foot">
-        만든 페이지 예시가 궁금하면 가입 후 편집기에서 바로 미리볼 수 있습니다.
-        MCP 연결은 가입 후 설정에서 안내합니다.
+        MCP 연결은 가입 후 설정에서 안내합니다. 샘플은{" "}
+        <Link href="/fmg">/fmg</Link>에서 바로 확인할 수 있습니다.
       </p>
 
       <a
