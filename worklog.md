@@ -141,3 +141,13 @@
 - stdio MCP(mcp/server.mjs) 스키마 전면 갱신(upload_asset·최신 필드, additionalProperties 허용).
 - upload_asset에 width/height/mimeType 반환. typography·sectionGap 필드 추가.
 - HTTP MCP 0.7.0, settings/design_editor 가이드 갱신.
+
+[2026-08-07 06:55 KST]
+- Page Schema + 템플릿 엔진 전환 시작: `page-schema`/`schema-templates`/`schema-ops`.
+- MCP 도구: open_profile_designer, list/get_templates, create_page_from_template,
+  get/update_page_schema·section·component, render_preview, validate_page,
+  save_draft, publish_page, restore_version.
+- MCP Apps UI 리소스 `ui://bioomo/profile-designer.html` + `/designer` 5단계 위젯.
+- 스키마→디자인 토큰/링크 동기화, 버전 스냅샷(draft/publish/restore).
+- HTTP/stdio MCP 0.8.0. CSS 직접 주입 대신 구조화 스키마 권장.
+- typecheck/build OK. 브랜치 `cursor/page-schema-designer-app-509c`.
