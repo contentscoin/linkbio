@@ -6,6 +6,10 @@ export type LinkSectionView = {
   title?: string;
   columns: 1 | 2 | 3;
   mobileColumns: 1 | 2 | 3;
+  gap?: number;
+  rowGap?: number;
+  columnGap?: number;
+  mobileGap?: number;
   links: Link[];
 };
 
@@ -77,6 +81,10 @@ export function groupLinksBySections(
       title: section.title,
       columns,
       mobileColumns,
+      gap: section.gap,
+      rowGap: section.rowGap,
+      columnGap: section.columnGap,
+      mobileGap: section.mobileGap,
       links,
     });
   }
@@ -86,4 +94,24 @@ export function groupLinksBySections(
     views.push({ id: "more", columns: 1, mobileColumns: 1, links: rest });
   }
   return views;
+}
+
+/** Debug helper: computed grid span from stored values (no template overrides). */
+export function computedLinkSpan(link: Link, columns: number) {
+  const span = Math.min(Math.max(1, link.span || 1), Math.max(1, columns));
+  const mobileSpan = Math.min(
+    Math.max(1, link.mobileSpan || 1),
+    Math.max(1, columns),
+  );
+  const rowSpan = Math.min(Math.max(1, link.rowSpan || 1), 3);
+  return {
+    storedSpan: link.span,
+    storedMobileSpan: link.mobileSpan,
+    storedRowSpan: link.rowSpan,
+    computedSpan: span,
+    computedMobileSpan: mobileSpan,
+    computedRowSpan: rowSpan,
+    featured: link.featured,
+    variant: link.variant,
+  };
 }

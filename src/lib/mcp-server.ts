@@ -26,7 +26,7 @@ export function createOmoBioMcpServer(
 ) {
   const server = new McpServer({
     name: "omo-bio",
-    version: "0.5.0",
+    version: "0.6.0",
   });
 
   const defaultHandle =
@@ -98,6 +98,13 @@ export function createOmoBioMcpServer(
           .max(3)
           .optional()
           .describe("그리드 가로 점유. 2면 한 줄 전체"),
+        colSpan: z
+          .number()
+          .min(1)
+          .max(3)
+          .optional()
+          .describe("span 별칭"),
+        rowSpan: z.number().min(1).max(3).optional().describe("그리드 세로 점유"),
         mobileSpan: z
           .number()
           .min(1)
@@ -151,11 +158,25 @@ export function createOmoBioMcpServer(
           .nullable()
           .optional()
           .describe("CTA 전용 leading 아이콘 https URL"),
+        leadingIcon: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("leadingIconUrl 별칭"),
         secondaryText: z
           .string()
           .nullable()
           .optional()
-          .describe("CTA 보조문구"),
+          .describe("CTA 보조문구 (subtitle)"),
+        trailingText: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("CTA 우측 문구"),
+        subtitlePlacement: z
+          .enum(["body", "trailing"])
+          .optional()
+          .describe("subtitle 위치"),
         badge: z
           .string()
           .nullable()
@@ -184,12 +205,23 @@ export function createOmoBioMcpServer(
           .nullable()
           .optional()
           .describe("카드 내부 패딩 (예: 12px 14px)"),
+        padding: z.string().nullable().optional().describe("cardPadding 별칭"),
         cardMinHeight: z
           .number()
           .min(0)
-          .max(320)
+          .max(480)
           .optional()
           .describe("카드 최소 높이(px)"),
+        minHeight: z.number().min(0).max(480).optional(),
+        cardHeight: z.number().min(0).max(640).optional(),
+        height: z.number().min(0).max(640).optional(),
+        aspectRatio: z.string().nullable().optional().describe("예: 1 / 1"),
+        objectFit: z.enum(["contain", "cover"]).optional(),
+        imageSize: z.number().min(0).max(96).optional(),
+        imagePosition: z.enum(["top", "leading", "trailing"]).optional(),
+        mobileCardMinHeight: z.number().min(0).max(480).optional(),
+        mobileCardHeight: z.number().min(0).max(640).optional(),
+        mobileCardPadding: z.string().nullable().optional(),
       },
     },
     async (args) =>
@@ -495,6 +527,11 @@ export function createOmoBioMcpServer(
         headerAlign: z.enum(["center", "left"]).optional(),
         heroGraphic: z.enum(["none", "golf"]).optional(),
         heroGraphicUrl: z.string().nullable().optional(),
+        heroImageUrl: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("heroGraphicUrl 별칭"),
         heroGraphicSize: z.number().min(24).max(240).optional(),
         heroGraphicPosition: z
           .enum(["right", "left", "below", "above"])
@@ -530,12 +567,48 @@ export function createOmoBioMcpServer(
         layout: z.enum(["full", "grid", "stack"]).optional(),
         order: z.number().optional(),
         items: z.array(z.string()).optional(),
+        gap: z.number().min(0).max(48).optional(),
+        rowGap: z.number().min(0).max(48).optional(),
+        columnGap: z.number().min(0).max(48).optional(),
+        mobileGap: z.number().min(0).max(48).optional(),
         clear: z.boolean().optional().describe("true면 모든 섹션 제거"),
       },
     },
     async (args) =>
       textResult(
         await runAgentAction(auth, "upsert_section", {
+          ...args,
+          handle:
+            handleOptional(args.handle) ??
+            (auth.scope === "page" ? auth.handle : ""),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "upload_asset",
+    {
+      title: "이미지 업로드",
+      description:
+        "dataUri/base64 이미지를 업로드하고 https URL을 반환합니다. logoImageUrl·iconImageUrl·heroImageUrl·leadingIconUrl에 사용하세요.",
+      inputSchema: {
+        handle: defaultHandle,
+        dataUri: z
+          .string()
+          .optional()
+          .describe("data:image/png;base64,..."),
+        file: z.string().optional().describe("dataUri 별칭"),
+        base64: z.string().optional().describe("순수 base64 (mimeType 필요)"),
+        mimeType: z.string().optional().describe("base64일 때 image/png 등"),
+        purpose: z
+          .enum(["logo", "icon", "hero", "general"])
+          .optional()
+          .describe("용도 태그"),
+      },
+    },
+    async (args) =>
+      textResult(
+        await runAgentAction(auth, "upload_asset", {
           ...args,
           handle:
             handleOptional(args.handle) ??

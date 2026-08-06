@@ -131,3 +131,8 @@
 [2026-08-06 22:28 KST]
 - PR #19 main 머지·프로덕션 배포 완료 (`90e499a`).
 - 라이브 랜딩에서 작업 과정·`/fmg` 샘플 섹션 확인.
+
+[2026-08-07 00:05 KST]
+- P0 그리드/업로드: bento nth-child 자동확장 제거, span 저장값 우선, upload_asset+assets 테이블,
+  CTA trailingText/subtitlePlacement, 카드 height/aspectRatio/gap, CSS 8k 오류, layoutDebug.
+- 브랜치 `cursor/bio-p0-grid-upload-509c`.

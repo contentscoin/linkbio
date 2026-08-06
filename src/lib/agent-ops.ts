@@ -1,6 +1,9 @@
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { links, pages, type Page } from "@/db/schema";
+import { parseDataUri, parseBase64Payload, storePageAsset } from "@/lib/assets";
+import { computedLinkSpan } from "@/lib/link-sections";
+import { publicPageUrl, siteOrigin } from "@/lib/site-url";
 import {
   applyTemplateToDesign,
   getDesignTemplate,
@@ -22,7 +25,6 @@ import {
   sanitizeHttpsUrl,
   type PageDesign,
 } from "@/lib/page-design";
-import { publicPageUrl, siteOrigin } from "@/lib/site-url";
 import {
   getWizardStep,
   nextWizardStepId,
@@ -84,6 +86,99 @@ function parseArrowPosition(
   }
   return undefined;
 }
+
+
+function parseSubtitlePlacement(value: unknown): "body" | "trailing" | undefined {
+  if (typeof value !== "string") return undefined;
+  if (value === "body" || value === "trailing") return value;
+  return undefined;
+}
+
+function parseObjectFit(value: unknown): "contain" | "cover" | undefined {
+  if (typeof value !== "string") return undefined;
+  if (value === "contain" || value === "cover") return value;
+  return undefined;
+}
+
+function applyLinkVisualFields(
+  target: Partial<typeof links.$inferInsert>,
+  body: Record<string, unknown>,
+): string | null {
+  const spanRaw = body.span ?? body.colSpan;
+  if (typeof spanRaw === "number" && Number.isFinite(spanRaw)) {
+    target.span = Math.min(3, Math.max(1, Math.floor(spanRaw)));
+  }
+  if (typeof body.mobileSpan === "number" && Number.isFinite(body.mobileSpan)) {
+    target.mobileSpan = Math.min(3, Math.max(1, Math.floor(body.mobileSpan)));
+  }
+  if (typeof body.rowSpan === "number" && Number.isFinite(body.rowSpan)) {
+    target.rowSpan = Math.min(3, Math.max(1, Math.floor(body.rowSpan)));
+  }
+  if (body.trailingText !== undefined) {
+    target.trailingText =
+      body.trailingText === null
+        ? ""
+        : typeof body.trailingText === "string"
+          ? body.trailingText.trim().slice(0, 160)
+          : "";
+  }
+  const subtitlePlacement = parseSubtitlePlacement(body.subtitlePlacement);
+  if (subtitlePlacement) target.subtitlePlacement = subtitlePlacement;
+  const objectFit = parseObjectFit(body.objectFit);
+  if (objectFit) target.objectFit = objectFit;
+  else if (body.objectFit === null || body.objectFit === "") {
+    target.objectFit = "";
+  }
+  if (typeof body.imageSize === "number" && Number.isFinite(body.imageSize)) {
+    target.imageSize = Math.min(96, Math.max(0, Math.floor(body.imageSize)));
+  }
+  if (typeof body.imagePosition === "string") {
+    const pos = body.imagePosition.trim();
+    target.imagePosition =
+      pos === "top" || pos === "leading" || pos === "trailing" ? pos : "";
+  } else if (body.imagePosition === null) {
+    target.imagePosition = "";
+  }
+  if (typeof body.cardHeight === "number" && Number.isFinite(body.cardHeight)) {
+    target.cardHeight = Math.min(640, Math.max(0, Math.floor(body.cardHeight)));
+  }
+  if (typeof body.height === "number" && Number.isFinite(body.height)) {
+    target.cardHeight = Math.min(640, Math.max(0, Math.floor(body.height)));
+  }
+  if (typeof body.minHeight === "number" && Number.isFinite(body.minHeight)) {
+    target.cardMinHeight = Math.min(480, Math.max(0, Math.floor(body.minHeight)));
+  }
+  if (typeof body.cardMinHeight === "number" && Number.isFinite(body.cardMinHeight)) {
+    target.cardMinHeight = Math.min(480, Math.max(0, Math.floor(body.cardMinHeight)));
+  }
+  if (body.aspectRatio !== undefined) {
+    target.aspectRatio =
+      body.aspectRatio === null
+        ? ""
+        : typeof body.aspectRatio === "string"
+          ? body.aspectRatio.trim().slice(0, 24)
+          : "";
+  }
+  if (typeof body.mobileCardMinHeight === "number" && Number.isFinite(body.mobileCardMinHeight)) {
+    target.mobileCardMinHeight = Math.min(480, Math.max(0, Math.floor(body.mobileCardMinHeight)));
+  }
+  if (typeof body.mobileCardHeight === "number" && Number.isFinite(body.mobileCardHeight)) {
+    target.mobileCardHeight = Math.min(640, Math.max(0, Math.floor(body.mobileCardHeight)));
+  }
+  if (body.mobileCardPadding !== undefined) {
+    target.mobileCardPadding =
+      body.mobileCardPadding === null
+        ? ""
+        : typeof body.mobileCardPadding === "string"
+          ? body.mobileCardPadding.trim().slice(0, 32)
+          : "";
+  }
+  if (body.padding !== undefined && typeof body.padding === "string") {
+    target.cardPadding = body.padding.trim().slice(0, 32);
+  }
+  return null;
+}
+
 
 function parseHandle(raw: unknown) {
   return handleSchema.safeParse(typeof raw === "string" ? raw : "");
@@ -152,6 +247,7 @@ export async function agentHealth(auth: Extract<McpAuthResult, { ok: true }>) {
       "set_custom_css",
       "update_design",
       "upsert_section",
+      "upload_asset",
       "get_preview_url",
     ],
   };
@@ -165,8 +261,34 @@ export async function agentGetPage(
   if (!loaded.ok) return loaded;
   const pageLinks = await getPageLinks(loaded.page.id);
   const design = parsePageDesign(loaded.page.design);
+  const sections = design.sections ?? [];
+  const layoutDebug = sections.map((section) => {
+    const columns = section.columns ?? 1;
+    const items = (section.items ?? [])
+      .map((key) => pageLinks.find((l) => l.id === key || l.section === key))
+      .filter(Boolean)
+      .map((link) => ({
+        id: link!.id,
+        label: link!.label,
+        ...computedLinkSpan(link!, columns),
+      }));
+    return {
+      sectionId: section.id,
+      title: section.title,
+      columns,
+      mobileColumns: section.mobileColumns ?? columns,
+      gap: section.gap,
+      rowGap: section.rowGap,
+      columnGap: section.columnGap,
+      items,
+    };
+  });
+  const previewUrl = publicPageUrl(loaded.handle);
   return {
     ok: true,
+    previewUrl,
+    publicUrl: previewUrl,
+    layoutDebug,
     page: {
       ...summarizePageBundle(loaded.page, pageLinks),
       design,
@@ -335,6 +457,15 @@ export async function agentUpsertLink(
         patch.leadingIconUrl = safe;
       }
     }
+    if (body.leadingIcon !== undefined && body.leadingIconUrl === undefined) {
+      if (body.leadingIcon === null || body.leadingIcon === "") {
+        patch.leadingIconUrl = "";
+      } else if (typeof body.leadingIcon === "string") {
+        const safe = sanitizeHttpsUrl(body.leadingIcon);
+        if (!safe) return err("leadingIcon은 https URL이어야 합니다.");
+        patch.leadingIconUrl = safe;
+      }
+    }
     if (body.secondaryText !== undefined) {
       patch.secondaryText =
         body.secondaryText === null
@@ -378,8 +509,9 @@ export async function agentUpsertLink(
             : "";
     }
     if (typeof body.cardMinHeight === "number" && Number.isFinite(body.cardMinHeight)) {
-      patch.cardMinHeight = Math.min(320, Math.max(0, Math.floor(body.cardMinHeight)));
+      patch.cardMinHeight = Math.min(480, Math.max(0, Math.floor(body.cardMinHeight)));
     }
+    applyLinkVisualFields(patch, body);
 
     const keys = Object.keys(patch).filter((k) => k !== "updatedAt");
     if (keys.length === 0) {
@@ -394,7 +526,13 @@ export async function agentUpsertLink(
       .where(and(eq(links.id, linkId), eq(links.pageId, page.id)));
 
     const fresh = (await getPageByHandle(loaded.handle)) ?? page;
-    return { ok: true, updatedFields: keys, page: await summarize(fresh) };
+    const previewUrl = publicPageUrl(loaded.handle);
+    return {
+      ok: true,
+      updatedFields: keys,
+      previewUrl,
+      page: await summarize(fresh),
+    };
   }
 
   // --- Create: label + url required ---
@@ -523,8 +661,9 @@ export async function agentUpsertLink(
           : "";
   }
   if (typeof body.cardMinHeight === "number" && Number.isFinite(body.cardMinHeight)) {
-    values.cardMinHeight = Math.min(320, Math.max(0, Math.floor(body.cardMinHeight)));
+    values.cardMinHeight = Math.min(480, Math.max(0, Math.floor(body.cardMinHeight)));
   }
+  applyLinkVisualFields(values, body);
 
   if (typeof values.sortOrder !== "number") {
     const [last] = await db
@@ -571,10 +710,37 @@ export async function agentUpsertLink(
     cardPadding: typeof values.cardPadding === "string" ? values.cardPadding : "",
     cardMinHeight:
       typeof values.cardMinHeight === "number" ? values.cardMinHeight : 0,
+    cardHeight: typeof values.cardHeight === "number" ? values.cardHeight : 0,
+    aspectRatio: typeof values.aspectRatio === "string" ? values.aspectRatio : "",
+    rowSpan: typeof values.rowSpan === "number" ? values.rowSpan : 1,
+    trailingText:
+      typeof values.trailingText === "string" ? values.trailingText : "",
+    subtitlePlacement:
+      typeof values.subtitlePlacement === "string"
+        ? values.subtitlePlacement
+        : "body",
+    objectFit: typeof values.objectFit === "string" ? values.objectFit : "",
+    imageSize: typeof values.imageSize === "number" ? values.imageSize : 0,
+    imagePosition:
+      typeof values.imagePosition === "string" ? values.imagePosition : "",
+    mobileCardMinHeight:
+      typeof values.mobileCardMinHeight === "number"
+        ? values.mobileCardMinHeight
+        : 0,
+    mobileCardHeight:
+      typeof values.mobileCardHeight === "number" ? values.mobileCardHeight : 0,
+    mobileCardPadding:
+      typeof values.mobileCardPadding === "string"
+        ? values.mobileCardPadding
+        : "",
   });
 
   const fresh = (await getPageByHandle(loaded.handle)) ?? page;
-  return { ok: true, page: await summarize(fresh) };
+  return {
+    ok: true,
+    previewUrl: publicPageUrl(loaded.handle),
+    page: await summarize(fresh),
+  };
 }
 
 export async function agentDeleteLink(
@@ -1056,6 +1222,13 @@ export async function agentUpdateDesign(
   } else if (body.heroGraphicUrl === null) {
     patch.heroGraphicUrl = undefined;
   }
+  if (typeof body.heroImageUrl === "string") {
+    patch.heroGraphicUrl = body.heroImageUrl;
+    patch.heroImageUrl = body.heroImageUrl;
+  } else if (body.heroImageUrl === null) {
+    patch.heroGraphicUrl = undefined;
+    patch.heroImageUrl = undefined;
+  }
   if (
     typeof body.heroGraphicSize === "number" &&
     Number.isFinite(body.heroGraphicSize)
@@ -1124,6 +1297,7 @@ export async function agentUpdateDesign(
   return {
     ok: true,
     design: parsePageDesign(fresh.design),
+    previewUrl: publicPageUrl(loaded.handle),
     page: await summarize(fresh),
   };
 }
@@ -1166,8 +1340,68 @@ export async function agentUpsertSection(
     ok: true,
     sections: parsePageDesign(fresh.design).sections,
     design: parsePageDesign(fresh.design),
+    previewUrl: publicPageUrl(loaded.handle),
     page: await summarize(fresh),
   };
+}
+
+export async function agentUploadAsset(
+  auth: Extract<McpAuthResult, { ok: true }>,
+  body: Record<string, unknown>,
+): Promise<AgentResult> {
+  const loaded = await loadScopedPage(auth, body.handle);
+  if (!loaded.ok) return loaded;
+
+  const purpose =
+    typeof body.purpose === "string" ? body.purpose.trim().slice(0, 32) : "general";
+  let parsed:
+    | { mimeType: string; buffer: Buffer }
+    | null = null;
+
+  if (typeof body.dataUri === "string" && body.dataUri.trim()) {
+    parsed = parseDataUri(body.dataUri);
+    if (!parsed) {
+      return err(
+        "dataUri 형식이 올바르지 않거나 지원하지 않는 이미지입니다. data:image/png;base64,...",
+      );
+    }
+  } else if (typeof body.base64 === "string" && body.base64.trim()) {
+    parsed = parseBase64Payload(
+      body.base64,
+      typeof body.mimeType === "string" ? body.mimeType : undefined,
+    );
+    if (!parsed) {
+      return err("base64 이미지 디코딩 실패 또는 용량/형식 오류 (최대 1.5MB).");
+    }
+  } else if (typeof body.file === "string" && body.file.trim()) {
+    // MCP clients may send file as dataUri in `file`
+    parsed = parseDataUri(body.file) || parseBase64Payload(body.file, "image/png");
+    if (!parsed) {
+      return err("file은 dataUri 또는 base64 문자열이어야 합니다.");
+    }
+  } else {
+    return err("dataUri | base64 | file 중 하나가 필요합니다.");
+  }
+
+  try {
+    const asset = await storePageAsset({
+      pageId: loaded.page.id,
+      mimeType: parsed.mimeType,
+      buffer: parsed.buffer,
+      purpose,
+    });
+    return {
+      ok: true,
+      asset,
+      httpsUrl: asset.url,
+      url: asset.url,
+      previewUrl: publicPageUrl(loaded.handle),
+      note:
+        "반환된 httpsUrl을 logoImageUrl / iconImageUrl / heroImageUrl / leadingIconUrl 에 넣으세요.",
+    };
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "자산 업로드 실패");
+  }
 }
 
 export async function agentGetPreviewUrl(
@@ -1201,9 +1435,10 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       "1) get_page 로 현재 design/links 확인",
       "2) list_design_capabilities 로 필드·아이콘 키 확인 (필요 시)",
       "3) update_design 으로 색/헤드라인/통계바/섹션 골격 설정",
-      "4) upsert_section 으로 섹션 title/columns/items 조정",
-      "5) upsert_link(linkId + 변경 필드만) 로 아이콘·배지·span·variant·featured 부분 수정",
-      "6) get_preview_url 후 공개 URL 새로고침으로 확인",
+      "4) upsert_section 으로 섹션 title/columns/items/gap 조정 (템플릿 nth-child 자동확장 없음)",
+      "5) upsert_link(linkId + span/colSpan:1 등) 로 그리드·아이콘·CTA 슬롯 부분 수정",
+      "6) upload_asset(dataUri) → httpsUrl 을 logoImageUrl/iconImageUrl/heroImageUrl에 연결",
+      "7) get_page.layoutDebug 로 저장 span vs 계산 span 확인 후 get_preview_url 새로고침",
     ],
     designFields: {
       theme: "fairway|noir|aurora|bento|brutal|editorial|terminal|paper 등",
@@ -1243,7 +1478,9 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       showHandle: "boolean",
       showAvatar: "boolean",
       sections: "upsert_section 또는 update_design.sections (mobileColumns 지원)",
-      customCss: "set_custom_css — [data-role=page-root] 기준으로 적용",
+      customCss:
+        "set_custom_css — 8000자 초과 시 오류(절단 없음). [data-role=page-root] 기준",
+      heroImageUrl: "heroGraphicUrl 별칭",
     },
     linkFields: {
       linkId: "부분 수정 시 필수. label/url 없이 필드만 패치 가능",
@@ -1259,31 +1496,41 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       iconSize: "12~96 px",
       iconPlacement: "leading|top|trailing",
       badge: "카드 배지 텍스트 (예: 대표 서비스)",
-      span: "1|2|3 — 그리드에서 가로 점유. 2면 한 줄 전체",
-      mobileSpan: "1|2|3 — 모바일 가로 점유",
-      layout: "horizontal|vertical",
-      cardLayout: "layout 별칭",
-      showArrow: "우측 화살표 표시",
+      span: "1|2|3 — 그리드 가로 점유. featured여도 자동 확장하지 않음",
+      colSpan: "span 별칭",
+      rowSpan: "1|2|3",
+      mobileSpan: "1|2|3",
+      cardHeight: "카드 고정 높이 px",
+      minHeight: "cardMinHeight 별칭",
+      aspectRatio: "CSS aspect-ratio (예: 1/1)",
+      trailingText: "CTA 우측 문구",
+      subtitlePlacement: "body|trailing",
+      objectFit: "contain|cover (아이콘 이미지)",
+      imageSize: "아이콘 이미지 px",
+      imagePosition: "top|leading|trailing",
+      leadingIcon: "leadingIconUrl 별칭",
+      showArrow: "우측 화살표",
       arrowStyle: "plain|circle",
       arrowPosition: "trailing|top-right|end",
-      showDivider: "CTA 아이콘/텍스트 사이 세로 구분선",
-      trailingIcon: "화살표 대신 표시할 문자/심볼",
-      cardPadding: "카드 내부 패딩 문자열",
-      cardMinHeight: "카드 최소 높이(px)",
-      variant: "card|full|spotlight|featured",
-      section: "섹션/그룹 id",
-      sortOrder: "정렬 순서",
-      isVisible: "노출 여부",
+      showDivider: "CTA 세로 구분선",
+      cardPadding: "패딩 문자열",
+      variant: "card|full|spotlight",
     },
-    icons: [...LINK_ICON_KEYS],
-    variants: {
-      card: "기본 그리드/리스트 카드",
-      full: "한 줄 전체 너비 (span:2와 유사)",
-      spotlight: "강조 카드 (흰 배경+액센트 테두리, badge와 함께 사용)",
-      featured: "링크 featured:true 권장 — CTA 색상 토큰 사용",
+    tools: {
+      upload_asset: "dataUri|base64 → httpsUrl (/api/assets/:id)",
+      get_page: "layoutDebug 포함 — 저장 span vs 계산 span",
+      get_preview_url: "공개 Preview URL 반환",
+    },
+    designExtras: {
+      heroImageUrl: "heroGraphicUrl 별칭",
+      sectionGaps: "gap|rowGap|columnGap|mobileGap",
+      customCss:
+        "set_custom_css — 8000자 초과 시 절단하지 않고 오류",
     },
     rendererDataRoles: {
-      "page-root": "[data-role='page-root'] (bio-stage, customCss 기준)",
+      "page-root": "[data-role='page-root']",
+      "section-id": "[data-section-id]",
+      "link-id": "[data-link-id]",
       "display-name": "[data-role='display-name']",
       headline: "[data-role='headline']",
       "proof-strip": "[data-role='proof-strip']",
@@ -1293,20 +1540,22 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       "link-content": "[data-role='link-content']",
       "link-title": "[data-role='link-title']",
       "link-sublabel": "[data-role='link-sublabel']",
+      "link-trailing-text": "[data-role='link-trailing-text']",
       "link-arrow": "[data-role='link-arrow']",
       badge: "[data-role='badge']",
       divider: "[data-role='divider']",
     },
-    layoutRecipes: {
-      "헤더+통계바":
-        "update_design({ contentMaxWidth:765, logoImageUrl, headlineSegments, heroGraphic:'golf', proofItems, showHandle:false, showAvatar:false })",
-      "라임 CTA":
-        "update_design({ featuredFill, featuredText }) + upsert_link({ linkId, featured:true, leadingIconUrl, secondaryText, showDivider:true, showArrow:true, arrowStyle:'circle', span:2 })",
-      "2열+일부전체":
-        "upsert_section({ id, title, columns:2, mobileColumns:2, items:[...] }) + 전체폭 링크는 upsert_link({ linkId, span:2, mobileSpan:2 })",
-      "1열 바로가기":
+    recipes: {
+      brandWordmarkAndHeadline:
+        "upload_asset → update_design({ contentMaxWidth:765, logoImageUrl, headlineSegments, heroGraphic:'golf', proofItems, showHandle:false, showAvatar:false })",
+      ctaBar:
+        "update_design({ featuredFill, featuredText }) + upsert_link({ linkId, featured:true, leadingIconUrl, secondaryText, trailingText, showDivider:true, subtitlePlacement:'trailing', showArrow:true, arrowStyle:'circle', span:2 })",
+      twoByTwoServices:
+        "upsert_section({ id, title, columns:2, mobileColumns:2, gap:12, items:[...] }) + 각 링크 upsert_link({ linkId, span:1, mobileSpan:1, iconImageUrl, minHeight:140 }) — 빈칸/자동 전체폭 없음",
+      shortcutsRow:
         "upsert_section({ id, title, columns:1, items:[...] }) + 각 링크 iconImageUrl/iconKey",
     },
+    icons: [...LINK_ICON_KEYS],
     note: "페이지 콘텐츠를 임의로 바꾸지 말고, 사용자가 요청한 수정만 MCP 도구로 적용하세요.",
   };
 }
@@ -1350,6 +1599,8 @@ export async function runAgentAction(
       return agentUpdateDesign(auth, body);
     case "upsert_section":
       return agentUpsertSection(auth, body);
+    case "upload_asset":
+      return agentUploadAsset(auth, body);
     case "get_preview_url":
       return agentGetPreviewUrl(auth, body);
     default:

@@ -63,6 +63,7 @@ function LinkIcon({
   leadingIconUrl,
   iconSize,
   accent,
+  objectFit,
 }: {
   iconKey: string;
   iconUrl: string;
@@ -70,9 +71,13 @@ function LinkIcon({
   leadingIconUrl?: string;
   iconSize: number;
   accent?: boolean;
+  objectFit?: "contain" | "cover";
 }) {
   const size = Math.min(96, Math.max(12, iconSize || 20));
-  const style = { "--icon-size": `${size}px` } as CSSProperties;
+  const style = {
+    "--icon-size": `${size}px`,
+    objectFit: objectFit || undefined,
+  } as CSSProperties;
   const imageUrl = leadingIconUrl || iconImageUrl || iconUrl;
   if (imageUrl) {
     return (
@@ -85,6 +90,7 @@ function LinkIcon({
         height={size}
         style={style}
         data-role="link-icon"
+        data-object-fit={objectFit}
       />
     );
   }
@@ -191,15 +197,17 @@ function HeadlineView({ parts }: { parts: HeadlineSegment[] }) {
 function BioLinkCard({
   link,
   forceCta = false,
+  sectionColumns = 1,
 }: {
   link: Link;
   forceCta?: boolean;
+  sectionColumns?: number;
 }) {
-  const span = link.span >= 2 || link.featured ? 2 : Math.max(1, link.span || 1);
-  const mobileSpan =
-    link.mobileSpan >= 2 || link.featured
-      ? 2
-      : Math.max(1, link.mobileSpan || 1);
+  // Section grid fields win — never force featured to full width.
+  const maxCols = Math.max(1, sectionColumns || 1);
+  const span = Math.min(Math.max(1, link.span || 1), maxCols);
+  const mobileSpan = Math.min(Math.max(1, link.mobileSpan || 1), maxCols);
+  const rowSpan = Math.min(Math.max(1, link.rowSpan || 1), 3);
   const isSpotlight = link.variant === "spotlight";
   const isCta = forceCta || link.featured;
   const variant = isCta
@@ -226,18 +234,48 @@ function BioLinkCard({
   );
   const showArrow = link.showArrow !== false;
   const showDivider = link.showDivider === true;
+  const subtitlePlacement =
+    link.subtitlePlacement === "trailing" ? "trailing" : "body";
   const secondary = link.secondaryText || link.sublabel || "";
+  const trailingText = link.trailingText || "";
   const arrowStyle = link.arrowStyle === "circle" ? "circle" : "plain";
   const arrowPosition =
     link.arrowPosition === "top-right" || link.arrowPosition === "end"
       ? link.arrowPosition
       : "trailing";
+  const objectFit =
+    link.objectFit === "contain" || link.objectFit === "cover"
+      ? link.objectFit
+      : undefined;
+  const imagePosition =
+    link.imagePosition === "top" ||
+    link.imagePosition === "leading" ||
+    link.imagePosition === "trailing"
+      ? link.imagePosition
+      : undefined;
+  const iconSize =
+    (link.imageSize && link.imageSize > 0 ? link.imageSize : 0) ||
+    link.iconSize ||
+    (isCta ? 28 : 20);
 
-  const style: CSSProperties = {};
+  const style: CSSProperties & Record<string, string | number> = {};
   if (typeof link.cardMinHeight === "number" && link.cardMinHeight > 0) {
-    style.minHeight = `${Math.min(320, link.cardMinHeight)}px`;
+    style.minHeight = `${Math.min(480, link.cardMinHeight)}px`;
   }
+  if (typeof link.cardHeight === "number" && link.cardHeight > 0) {
+    style.height = `${Math.min(640, link.cardHeight)}px`;
+  }
+  if (link.aspectRatio) style.aspectRatio = link.aspectRatio;
   if (link.cardPadding) style.padding = link.cardPadding;
+  if (typeof link.mobileCardMinHeight === "number" && link.mobileCardMinHeight > 0) {
+    style["--card-min-h-mobile"] = `${link.mobileCardMinHeight}px`;
+  }
+  if (typeof link.mobileCardHeight === "number" && link.mobileCardHeight > 0) {
+    style["--card-h-mobile"] = `${link.mobileCardHeight}px`;
+  }
+  if (link.mobileCardPadding) {
+    style["--card-pad-mobile"] = link.mobileCardPadding;
+  }
 
   const className = [
     "bio-link",
@@ -258,10 +296,29 @@ function BioLinkCard({
       iconUrl={link.iconUrl || ""}
       iconImageUrl={link.iconImageUrl || ""}
       leadingIconUrl={leadingIcon}
-      iconSize={link.iconSize || (isCta ? 28 : 20)}
+      iconSize={iconSize}
       accent={isCta || isSpotlight}
+      objectFit={objectFit}
     />
   );
+
+  const bodySub =
+    subtitlePlacement === "body" && secondary ? (
+      <span className="bio-link-sub" data-role="link-sublabel">
+        {secondary}
+      </span>
+    ) : null;
+
+  const trailingSub =
+    subtitlePlacement === "trailing" && (trailingText || secondary) ? (
+      <span className="bio-link-trailing-text" data-role="link-trailing-text">
+        {trailingText || secondary}
+      </span>
+    ) : trailingText ? (
+      <span className="bio-link-trailing-text" data-role="link-trailing-text">
+        {trailingText}
+      </span>
+    ) : null;
 
   return (
     <a
@@ -273,7 +330,9 @@ function BioLinkCard({
       data-role={role}
       data-variant={variant}
       data-span={String(span)}
+      data-col-span={String(span)}
       data-mobile-span={String(mobileSpan)}
+      data-row-span={String(rowSpan)}
       data-group={link.section || undefined}
       data-section={link.section || undefined}
       data-icon={link.iconKey || undefined}
@@ -284,6 +343,9 @@ function BioLinkCard({
       data-arrow-style={arrowStyle}
       data-arrow-position={arrowPosition}
       data-show-divider={showDivider ? "1" : "0"}
+      data-subtitle-placement={subtitlePlacement}
+      data-object-fit={objectFit}
+      data-image-position={imagePosition}
       style={style}
     >
       {iconPlacement !== "trailing" ? iconNode : null}
@@ -300,13 +362,10 @@ function BioLinkCard({
           <span className="bio-link-title" data-role="link-title">
             {link.label}
           </span>
-          {secondary ? (
-            <span className="bio-link-sub" data-role="link-sublabel">
-              {secondary}
-            </span>
-          ) : null}
+          {bodySub}
         </span>
       </span>
+      {trailingSub}
       {iconPlacement === "trailing" ? iconNode : null}
       <LinkArrow
         featured={isCta}
@@ -319,8 +378,20 @@ function BioLinkCard({
   );
 }
 
-function CtaLinkCard({ link }: { link: Link }) {
-  return <BioLinkCard link={{ ...link, featured: true }} forceCta />;
+function CtaLinkCard({
+  link,
+  sectionColumns,
+}: {
+  link: Link;
+  sectionColumns?: number;
+}) {
+  return (
+    <BioLinkCard
+      link={{ ...link, featured: true }}
+      forceCta
+      sectionColumns={sectionColumns}
+    />
+  );
 }
 
 export default async function PublicPage({
@@ -588,11 +659,26 @@ export default async function PublicPage({
           ) : null}
         </header>
 
-        {sectionViews.map((section) => (
+        {sectionViews.map((section) => {
+          const sectionStyle: CSSProperties & Record<string, string> = {};
+          if (typeof section.gap === "number") {
+            sectionStyle["--section-gap"] = `${section.gap}px`;
+          }
+          if (typeof section.rowGap === "number") {
+            sectionStyle["--section-row-gap"] = `${section.rowGap}px`;
+          }
+          if (typeof section.columnGap === "number") {
+            sectionStyle["--section-col-gap"] = `${section.columnGap}px`;
+          }
+          if (typeof section.mobileGap === "number") {
+            sectionStyle["--section-mobile-gap"] = `${section.mobileGap}px`;
+          }
+          return (
           <section
             key={section.id}
             className="bio-section bio-rise"
             data-section={section.id}
+            data-section-id={section.id}
             data-role="section"
           >
             {section.title ? (
@@ -606,17 +692,27 @@ export default async function PublicPage({
               data-columns={String(section.columns)}
               data-mobile-columns={String(section.mobileColumns)}
               data-group={section.id}
+              style={sectionStyle}
             >
               {section.links.map((link) =>
                 link.featured ? (
-                  <CtaLinkCard key={link.id} link={link} />
+                  <CtaLinkCard
+                    key={link.id}
+                    link={link}
+                    sectionColumns={section.columns}
+                  />
                 ) : (
-                  <BioLinkCard key={link.id} link={link} />
+                  <BioLinkCard
+                    key={link.id}
+                    link={link}
+                    sectionColumns={section.columns}
+                  />
                 ),
               )}
             </div>
           </section>
-        ))}
+          );
+        })}
 
         <footer className="bio-foot bio-rise" data-role="footer">
           <NextLink href="/">OMO Bio로 만든 페이지</NextLink>

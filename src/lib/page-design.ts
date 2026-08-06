@@ -75,6 +75,10 @@ export type DesignSection = {
   order?: number;
   /** Link ids (preferred) or stable keys matched via link.section */
   items?: string[];
+  gap?: number;
+  rowGap?: number;
+  columnGap?: number;
+  mobileGap?: number;
 };
 
 export type ProofItem = {
@@ -134,6 +138,8 @@ export type PageDesign = {
   headerAlign?: HeaderAlign;
   heroGraphic?: HeroGraphic;
   heroGraphicUrl?: string;
+  /** Alias of heroGraphicUrl */
+  heroImageUrl?: string;
   heroGraphicSize?: number;
   heroGraphicPosition?: HeroGraphicPosition;
   showHandle?: boolean;
@@ -384,6 +390,22 @@ export function parsePageDesign(raw: unknown): PageDesign {
           .map((v) => v.slice(0, 80))
           .slice(0, 48)
       : undefined;
+    const gap =
+      typeof row.gap === "number" && Number.isFinite(row.gap)
+        ? Math.min(48, Math.max(0, Math.floor(row.gap)))
+        : undefined;
+    const rowGap =
+      typeof row.rowGap === "number" && Number.isFinite(row.rowGap)
+        ? Math.min(48, Math.max(0, Math.floor(row.rowGap)))
+        : undefined;
+    const columnGap =
+      typeof row.columnGap === "number" && Number.isFinite(row.columnGap)
+        ? Math.min(48, Math.max(0, Math.floor(row.columnGap)))
+        : undefined;
+    const mobileGap =
+      typeof row.mobileGap === "number" && Number.isFinite(row.mobileGap)
+        ? Math.min(48, Math.max(0, Math.floor(row.mobileGap)))
+        : undefined;
     sections.push({
       id,
       title: asString(row.title).slice(0, 80) || undefined,
@@ -395,6 +417,10 @@ export function parsePageDesign(raw: unknown): PageDesign {
           ? row.order
           : undefined,
       items: items && items.length > 0 ? items : undefined,
+      gap,
+      rowGap,
+      columnGap,
+      mobileGap,
     });
   }
 
@@ -512,7 +538,12 @@ export function parsePageDesign(raw: unknown): PageDesign {
       headlineSegments.length > 0 ? headlineSegments : undefined,
     headerAlign,
     heroGraphic,
-    heroGraphicUrl: sanitizeHttpsUrl(asString(data.heroGraphicUrl)),
+    heroGraphicUrl:
+      sanitizeHttpsUrl(asString(data.heroGraphicUrl)) ||
+      sanitizeHttpsUrl(asString(data.heroImageUrl)),
+    heroImageUrl:
+      sanitizeHttpsUrl(asString(data.heroImageUrl)) ||
+      sanitizeHttpsUrl(asString(data.heroGraphicUrl)),
     heroGraphicSize,
     heroGraphicPosition,
     showHandle: data.showHandle === false ? false : undefined,
@@ -557,8 +588,13 @@ export function sanitizeHttpsUrl(value: string): string | undefined {
 
 /** Allow limited decorative CSS; strip imports and script-like constructs. */
 export function sanitizeCustomCss(css: string): string | undefined {
-  const trimmed = css.trim().slice(0, 8000);
+  const trimmed = css.trim();
   if (!trimmed) return undefined;
+  if (trimmed.length > 8000) {
+    throw new Error(
+      `customCss가 8000자를 초과합니다 (${trimmed.length}자). 줄이거나 네이티브 필드를 사용하세요.`,
+    );
+  }
   const blocked =
     /@import|expression\s*\(|javascript:|behavior\s*:|@charset|<\/?script|url\s*\(\s*['"]?\s*javascript/i;
   if (blocked.test(trimmed)) {
@@ -624,7 +660,8 @@ export function designAttrs(design: PageDesign) {
     heroGraphic: design.heroGraphic && design.heroGraphic !== "none"
       ? design.heroGraphic
       : undefined,
-    heroGraphicUrl: design.heroGraphicUrl,
+    heroGraphicUrl: design.heroGraphicUrl || design.heroImageUrl,
+    heroImageUrl: design.heroImageUrl || design.heroGraphicUrl,
     heroGraphicSize: design.heroGraphicSize,
     heroGraphicPosition: design.heroGraphicPosition || "right",
     showHandle: design.showHandle !== false,

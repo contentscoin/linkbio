@@ -97,6 +97,17 @@ export const links = pgTable("links", {
   trailingIcon: text("trailing_icon").default("").notNull(),
   cardPadding: text("card_padding").default("").notNull(),
   cardMinHeight: integer("card_min_height").default(0).notNull(),
+  cardHeight: integer("card_height").default(0).notNull(),
+  aspectRatio: text("aspect_ratio").default("").notNull(),
+  rowSpan: integer("row_span").default(1).notNull(),
+  trailingText: text("trailing_text").default("").notNull(),
+  subtitlePlacement: text("subtitle_placement").default("body").notNull(),
+  objectFit: text("object_fit").default("").notNull(),
+  imageSize: integer("image_size").default(0).notNull(),
+  imagePosition: text("image_position").default("").notNull(),
+  mobileCardMinHeight: integer("mobile_card_min_height").default(0).notNull(),
+  mobileCardHeight: integer("mobile_card_height").default(0).notNull(),
+  mobileCardPadding: text("mobile_card_padding").default("").notNull(),
   clickCount: integer("click_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -106,6 +117,21 @@ export const links = pgTable("links", {
     .notNull(),
 });
 
+export const assets = pgTable("assets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  pageId: uuid("page_id")
+    .notNull()
+    .references(() => pages.id, { onDelete: "cascade" }),
+  mimeType: text("mime_type").notNull(),
+  contentBase64: text("content_base64").notNull(),
+  byteSize: integer("byte_size").default(0).notNull(),
+  purpose: text("purpose").default("general").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type Page = typeof pages.$inferSelect;
 export type Link = typeof links.$inferSelect;
+export type Asset = typeof assets.$inferSelect;

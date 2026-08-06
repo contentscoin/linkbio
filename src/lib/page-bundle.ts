@@ -1,6 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { links, pages, type Link, type Page } from "@/db/schema";
+import { computedLinkSpan } from "@/lib/link-sections";
 
 export async function getPageByHandle(handle: string) {
   const [page] = await getDb()
@@ -59,6 +60,18 @@ export function summarizePageBundle(page: Page, pageLinks: Link[]) {
       trailingIcon: link.trailingIcon || undefined,
       cardPadding: link.cardPadding || undefined,
       cardMinHeight: link.cardMinHeight || undefined,
+      cardHeight: link.cardHeight || undefined,
+      aspectRatio: link.aspectRatio || undefined,
+      rowSpan: link.rowSpan,
+      trailingText: link.trailingText || undefined,
+      subtitlePlacement: link.subtitlePlacement || undefined,
+      objectFit: link.objectFit || undefined,
+      imageSize: link.imageSize || undefined,
+      imagePosition: link.imagePosition || undefined,
+      mobileCardMinHeight: link.mobileCardMinHeight || undefined,
+      mobileCardHeight: link.mobileCardHeight || undefined,
+      mobileCardPadding: link.mobileCardPadding || undefined,
+      computed: computedLinkSpan(link, 2),
     })),
   };
 }
