@@ -62,3 +62,9 @@
 - 사용자: 로그인 실패 + 프로덕션 배포 요청.
 - 원인 추정: 템플릿과 동일하게 Server Action ID 불일치로 loginAction 실패.
 - 수정: 로그인폼을 `POST /api/auth/login` 일반 폼으로 전환. PR #13에 포함 후 main 머지·프로덕션 배포.
+
+
+[2026-08-06 10:48 KST]
+- PR #13 main 머지 완료 → 프로덕션 배포 `8716a31`.
+- 검증: `POST /api/auth/login` QA 계정 → 303 `/settings` + 세션 쿠키. 잘못된 비밀번호 → `/login?error=...`.
+- 템플릿 API도 세션으로 paper-note/fairway 적용 확인.
