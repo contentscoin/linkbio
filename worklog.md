@@ -151,3 +151,6 @@
 - 스키마→디자인 토큰/링크 동기화, 버전 스냅샷(draft/publish/restore).
 - HTTP/stdio MCP 0.8.0. CSS 직접 주입 대신 구조화 스키마 권장.
 - typecheck/build OK. 브랜치 `cursor/page-schema-designer-app-509c`.
+
+[2026-08-07 07:00 KST]
+- PR #22 main 머지 (`01bff00`). Production 자동 배포가 바로 안 떠서 main에 트리거 커밋 푸시.
