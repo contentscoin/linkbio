@@ -100,3 +100,7 @@
 - Bioomo 렌더러 기능 보강: 링크 이미지 아이콘(iconImageUrl), 카드 슬롯 레이아웃(layout/iconPlacement/iconSize), 모바일 그리드(mobileColumns/mobileSpan), CTA 전용 렌더(showArrow/trailingIcon), 브랜드 로고 별칭(brandLogoUrl/logoImageUrl).
 - MCP 입력 확장: upsert_link/upsert_section/update_design/list_design_capabilities.
 - 슬롯별 data-role(card/icon/badge/content/title/sublabel/arrow) 노출 및 카드 minWidth/minHeight/padding 제어.
+
+[2026-08-06 20:42 KST]
+- PR #16 main 머지·프로덕션 배포 완료 (`34cbc03`).
+- 슬롯형 렌더러(data-role), iconImageUrl/layout/mobileSpan/CTA 전용 경로 라이브 확인.
