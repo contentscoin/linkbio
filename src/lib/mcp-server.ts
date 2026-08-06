@@ -26,7 +26,7 @@ export function createOmoBioMcpServer(
 ) {
   const server = new McpServer({
     name: "omo-bio",
-    version: "0.4.0",
+    version: "0.5.0",
   });
 
   const defaultHandle =
@@ -113,6 +113,10 @@ export function createOmoBioMcpServer(
           .enum(["horizontal", "vertical"])
           .optional()
           .describe("카드 내부 레이아웃"),
+        cardLayout: z
+          .enum(["horizontal", "vertical"])
+          .optional()
+          .describe("layout 별칭"),
         iconPlacement: z
           .enum(["leading", "top", "trailing"])
           .optional()
@@ -120,7 +124,7 @@ export function createOmoBioMcpServer(
         iconSize: z
           .number()
           .min(12)
-          .max(64)
+          .max(96)
           .optional()
           .describe("아이콘 px 크기"),
         section: z.string().nullable().optional().describe("섹션/그룹 id"),
@@ -142,12 +146,34 @@ export function createOmoBioMcpServer(
           .nullable()
           .optional()
           .describe("링크별 이미지 아이콘 https URL (SVG/PNG). iconKey보다 우선"),
+        leadingIconUrl: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("CTA 전용 leading 아이콘 https URL"),
+        secondaryText: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("CTA 보조문구"),
         badge: z
           .string()
           .nullable()
           .optional()
           .describe("카드 배지 텍스트, 예: 대표 서비스"),
         showArrow: z.boolean().optional().describe("우측 화살표 표시 여부"),
+        arrowStyle: z
+          .enum(["plain", "circle"])
+          .optional()
+          .describe("화살표 스타일"),
+        arrowPosition: z
+          .enum(["trailing", "top-right", "end"])
+          .optional()
+          .describe("화살표 위치"),
+        showDivider: z
+          .boolean()
+          .optional()
+          .describe("CTA 아이콘/텍스트 사이 세로 구분선"),
         trailingIcon: z
           .string()
           .nullable()
@@ -440,14 +466,39 @@ export function createOmoBioMcpServer(
           .describe("브랜드 로고 https URL. null이면 제거"),
         brandLogoUrl: z.string().nullable().optional().describe("logoUrl 별칭"),
         logoImageUrl: z.string().nullable().optional().describe("logoUrl 별칭"),
+        logoWidth: z.number().min(24).max(480).optional(),
+        logoHeight: z.number().min(16).max(240).optional(),
+        logoAlign: z.enum(["center", "left", "right"]).optional(),
+        contentMaxWidth: z
+          .number()
+          .min(320)
+          .max(960)
+          .optional()
+          .describe("콘텐츠 폭 px. 예: 765"),
         headline: z.string().nullable().optional(),
         headlineHighlight: z
           .string()
           .nullable()
           .optional()
           .describe("headline 안에서 accent로 강조할 부분 문자열"),
+        headlineSegments: z
+          .array(
+            z.object({
+              text: z.string(),
+              accent: z.boolean().optional(),
+              breakAfter: z.boolean().optional(),
+            }),
+          )
+          .nullable()
+          .optional()
+          .describe("헤드라인 세그먼트(줄바꿈/강조)"),
         headerAlign: z.enum(["center", "left"]).optional(),
         heroGraphic: z.enum(["none", "golf"]).optional(),
+        heroGraphicUrl: z.string().nullable().optional(),
+        heroGraphicSize: z.number().min(24).max(240).optional(),
+        heroGraphicPosition: z
+          .enum(["right", "left", "below", "above"])
+          .optional(),
       },
     },
     async (args) =>

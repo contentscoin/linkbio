@@ -66,7 +66,23 @@ function parseIconPlacement(
 
 function parseIconSize(value: unknown): number | undefined {
   if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
-  return Math.min(64, Math.max(12, Math.floor(value)));
+  return Math.min(96, Math.max(12, Math.floor(value)));
+}
+
+function parseArrowStyle(value: unknown): "plain" | "circle" | undefined {
+  if (typeof value !== "string") return undefined;
+  if (value === "plain" || value === "circle") return value;
+  return undefined;
+}
+
+function parseArrowPosition(
+  value: unknown,
+): "trailing" | "top-right" | "end" | undefined {
+  if (typeof value !== "string") return undefined;
+  if (value === "trailing" || value === "top-right" || value === "end") {
+    return value;
+  }
+  return undefined;
 }
 
 function parseHandle(raw: unknown) {
@@ -271,7 +287,7 @@ export async function agentUpsertLink(
     } else if (body.variant === null) {
       patch.variant = "card";
     }
-    const layout = parseLinkLayout(body.layout);
+    const layout = parseLinkLayout(body.layout ?? body.cardLayout);
     if (layout) patch.layout = layout;
     const iconPlacement = parseIconPlacement(body.iconPlacement);
     if (iconPlacement) patch.iconPlacement = iconPlacement;
@@ -310,6 +326,23 @@ export async function agentUpsertLink(
         patch.iconImageUrl = safe;
       }
     }
+    if (body.leadingIconUrl !== undefined) {
+      if (body.leadingIconUrl === null || body.leadingIconUrl === "") {
+        patch.leadingIconUrl = "";
+      } else if (typeof body.leadingIconUrl === "string") {
+        const safe = sanitizeHttpsUrl(body.leadingIconUrl);
+        if (!safe) return err("leadingIconUrl은 https URL이어야 합니다.");
+        patch.leadingIconUrl = safe;
+      }
+    }
+    if (body.secondaryText !== undefined) {
+      patch.secondaryText =
+        body.secondaryText === null
+          ? ""
+          : typeof body.secondaryText === "string"
+            ? body.secondaryText.trim().slice(0, 160)
+            : "";
+    }
     if (body.badge !== undefined) {
       patch.badge =
         body.badge === null
@@ -321,6 +354,13 @@ export async function agentUpsertLink(
     if (typeof body.showArrow === "boolean") {
       patch.showArrow = body.showArrow;
     }
+    if (typeof body.showDivider === "boolean") {
+      patch.showDivider = body.showDivider;
+    }
+    const arrowStyle = parseArrowStyle(body.arrowStyle);
+    if (arrowStyle) patch.arrowStyle = arrowStyle;
+    const arrowPosition = parseArrowPosition(body.arrowPosition);
+    if (arrowPosition) patch.arrowPosition = arrowPosition;
     if (body.trailingIcon !== undefined) {
       patch.trailingIcon =
         body.trailingIcon === null
@@ -394,7 +434,7 @@ export async function agentUpsertLink(
   if (typeof body.variant === "string" && body.variant.trim()) {
     values.variant = body.variant.trim().slice(0, 32);
   }
-  const layout = parseLinkLayout(body.layout);
+  const layout = parseLinkLayout(body.layout ?? body.cardLayout);
   if (layout) values.layout = layout;
   const iconPlacement = parseIconPlacement(body.iconPlacement);
   if (iconPlacement) values.iconPlacement = iconPlacement;
@@ -431,6 +471,23 @@ export async function agentUpsertLink(
       values.iconImageUrl = safe;
     }
   }
+  if (body.leadingIconUrl !== undefined) {
+    if (body.leadingIconUrl === null || body.leadingIconUrl === "") {
+      values.leadingIconUrl = "";
+    } else if (typeof body.leadingIconUrl === "string") {
+      const safe = sanitizeHttpsUrl(body.leadingIconUrl);
+      if (!safe) return err("leadingIconUrl은 https URL이어야 합니다.");
+      values.leadingIconUrl = safe;
+    }
+  }
+  if (body.secondaryText !== undefined) {
+    values.secondaryText =
+      body.secondaryText === null
+        ? ""
+        : typeof body.secondaryText === "string"
+          ? body.secondaryText.trim().slice(0, 160)
+          : "";
+  }
   if (body.badge !== undefined) {
     values.badge =
       body.badge === null
@@ -442,6 +499,13 @@ export async function agentUpsertLink(
   if (typeof body.showArrow === "boolean") {
     values.showArrow = body.showArrow;
   }
+  if (typeof body.showDivider === "boolean") {
+    values.showDivider = body.showDivider;
+  }
+  const arrowStyle = parseArrowStyle(body.arrowStyle);
+  if (arrowStyle) values.arrowStyle = arrowStyle;
+  const arrowPosition = parseArrowPosition(body.arrowPosition);
+  if (arrowPosition) values.arrowPosition = arrowPosition;
   if (body.trailingIcon !== undefined) {
     values.trailingIcon =
       body.trailingIcon === null
@@ -490,6 +554,18 @@ export async function agentUpsertLink(
       typeof values.iconPlacement === "string" ? values.iconPlacement : "leading",
     iconSize: typeof values.iconSize === "number" ? values.iconSize : 20,
     showArrow: typeof values.showArrow === "boolean" ? values.showArrow : true,
+    arrowStyle:
+      typeof values.arrowStyle === "string" ? values.arrowStyle : "plain",
+    arrowPosition:
+      typeof values.arrowPosition === "string"
+        ? values.arrowPosition
+        : "trailing",
+    showDivider:
+      typeof values.showDivider === "boolean" ? values.showDivider : false,
+    leadingIconUrl:
+      typeof values.leadingIconUrl === "string" ? values.leadingIconUrl : "",
+    secondaryText:
+      typeof values.secondaryText === "string" ? values.secondaryText : "",
     trailingIcon:
       typeof values.trailingIcon === "string" ? values.trailingIcon : "",
     cardPadding: typeof values.cardPadding === "string" ? values.cardPadding : "",
@@ -926,12 +1002,32 @@ export async function agentUpdateDesign(
     body.logoUrl ?? body.brandLogoUrl ?? body.logoImageUrl;
   if (typeof logoInput === "string") {
     patch.logoUrl = logoInput;
+    patch.logoImageUrl = logoInput;
   } else if (
     body.logoUrl === null ||
     body.brandLogoUrl === null ||
     body.logoImageUrl === null
   ) {
     patch.logoUrl = undefined;
+    patch.logoImageUrl = undefined;
+  }
+  if (typeof body.logoWidth === "number" && Number.isFinite(body.logoWidth)) {
+    patch.logoWidth = Math.min(480, Math.max(24, Math.floor(body.logoWidth)));
+  }
+  if (typeof body.logoHeight === "number" && Number.isFinite(body.logoHeight)) {
+    patch.logoHeight = Math.min(240, Math.max(16, Math.floor(body.logoHeight)));
+  }
+  if (typeof body.logoAlign === "string") {
+    patch.logoAlign = body.logoAlign as PageDesign["logoAlign"];
+  }
+  if (
+    typeof body.contentMaxWidth === "number" &&
+    Number.isFinite(body.contentMaxWidth)
+  ) {
+    patch.contentMaxWidth = Math.min(
+      960,
+      Math.max(320, Math.floor(body.contentMaxWidth)),
+    );
   }
   if (typeof body.headline === "string") {
     patch.headline = body.headline;
@@ -943,11 +1039,35 @@ export async function agentUpdateDesign(
   } else if (body.headlineHighlight === null) {
     patch.headlineHighlight = undefined;
   }
+  if (Array.isArray(body.headlineSegments)) {
+    patch.headlineSegments =
+      body.headlineSegments as PageDesign["headlineSegments"];
+  } else if (body.headlineSegments === null) {
+    patch.headlineSegments = [];
+  }
   if (typeof body.headerAlign === "string") {
     patch.headerAlign = body.headerAlign as PageDesign["headerAlign"];
   }
   if (typeof body.heroGraphic === "string") {
     patch.heroGraphic = body.heroGraphic as PageDesign["heroGraphic"];
+  }
+  if (typeof body.heroGraphicUrl === "string") {
+    patch.heroGraphicUrl = body.heroGraphicUrl;
+  } else if (body.heroGraphicUrl === null) {
+    patch.heroGraphicUrl = undefined;
+  }
+  if (
+    typeof body.heroGraphicSize === "number" &&
+    Number.isFinite(body.heroGraphicSize)
+  ) {
+    patch.heroGraphicSize = Math.min(
+      240,
+      Math.max(24, Math.floor(body.heroGraphicSize)),
+    );
+  }
+  if (typeof body.heroGraphicPosition === "string") {
+    patch.heroGraphicPosition =
+      body.heroGraphicPosition as PageDesign["heroGraphicPosition"];
   }
 
   let design: PageDesign;
@@ -966,15 +1086,24 @@ export async function agentUpdateDesign(
     } else if (body.proofItems === null) {
       delete design.proofItems;
     }
+    if (patch.headlineSegments) {
+      design.headlineSegments = parsePageDesign({
+        headlineSegments: patch.headlineSegments,
+      }).headlineSegments;
+    } else if (body.headlineSegments === null) {
+      delete design.headlineSegments;
+    }
     if (
       body.logoUrl === null ||
       body.brandLogoUrl === null ||
       body.logoImageUrl === null
     ) {
       delete design.logoUrl;
+      delete design.logoImageUrl;
     }
     if (body.headline === null) delete design.headline;
     if (body.headlineHighlight === null) delete design.headlineHighlight;
+    if (body.heroGraphicUrl === null) delete design.heroGraphicUrl;
   } catch (e) {
     return err(e instanceof Error ? e.message : "Invalid design.");
   }
@@ -1098,32 +1227,46 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       proofItems: "[{ value, label }] 헤더 통계 바 (null이면 제거)",
       logoUrl: "브랜드 로고 https URL (null이면 제거)",
       brandLogoUrl: "logoUrl 별칭",
-      logoImageUrl: "logoUrl 별칭",
+      logoImageUrl: "logoUrl 별칭 (워드마크 SVG/PNG)",
+      logoWidth: "로고 너비 px",
+      logoHeight: "로고 높이 px",
+      logoAlign: "center|left|right",
+      contentMaxWidth: "콘텐츠 폭 px (예: 765)",
       headline: "헤드라인 문자열",
       headlineHighlight: "headline 안에서 accent 강조할 부분",
+      headlineSegments: "[{ text, accent?, breakAfter? }] 줄바꿈/강조 세그먼트",
       headerAlign: "center|left",
       heroGraphic: "none|golf",
+      heroGraphicUrl: "커스텀 히어로 이미지 https",
+      heroGraphicSize: "히어로 그래픽 px",
+      heroGraphicPosition: "right|left|below|above",
       showHandle: "boolean",
       showAvatar: "boolean",
       sections: "upsert_section 또는 update_design.sections (mobileColumns 지원)",
-      customCss: "set_custom_css (최후 수단)",
+      customCss: "set_custom_css — [data-role=page-root] 기준으로 적용",
     },
     linkFields: {
       linkId: "부분 수정 시 필수. label/url 없이 필드만 패치 가능",
       label: "제목 (신규 생성 시 필수)",
       url: "URL (신규 생성 시 필수)",
       sublabel: "설명",
-      featured: "true면 라임 CTA 역할 (featuredFill 적용)",
+      secondaryText: "CTA 보조문구 (sublabel 대체 가능)",
+      featured: "true면 CTA 역할 (featuredFill 적용)",
       iconKey: "내장 아이콘 키",
       iconUrl: "커스텀 아이콘 https (iconKey보다 우선)",
       iconImageUrl: "링크별 이미지 아이콘 https (SVG/PNG 권장)",
-      iconSize: "12~64 px",
+      leadingIconUrl: "CTA 전용 leading 아이콘 https",
+      iconSize: "12~96 px",
       iconPlacement: "leading|top|trailing",
       badge: "카드 배지 텍스트 (예: 대표 서비스)",
       span: "1|2|3 — 그리드에서 가로 점유. 2면 한 줄 전체",
       mobileSpan: "1|2|3 — 모바일 가로 점유",
       layout: "horizontal|vertical",
+      cardLayout: "layout 별칭",
       showArrow: "우측 화살표 표시",
+      arrowStyle: "plain|circle",
+      arrowPosition: "trailing|top-right|end",
+      showDivider: "CTA 아이콘/텍스트 사이 세로 구분선",
       trailingIcon: "화살표 대신 표시할 문자/심볼",
       cardPadding: "카드 내부 패딩 문자열",
       cardMinHeight: "카드 최소 높이(px)",
@@ -1140,23 +1283,29 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       featured: "링크 featured:true 권장 — CTA 색상 토큰 사용",
     },
     rendererDataRoles: {
+      "page-root": "[data-role='page-root'] (bio-stage, customCss 기준)",
+      "display-name": "[data-role='display-name']",
+      headline: "[data-role='headline']",
+      "proof-strip": "[data-role='proof-strip']",
+      section: "[data-role='section']",
       card: "a[data-role='card'|'cta-card']",
-      icon: "[data-role='icon']",
+      "link-icon": "[data-role='link-icon']",
+      "link-content": "[data-role='link-content']",
+      "link-title": "[data-role='link-title']",
+      "link-sublabel": "[data-role='link-sublabel']",
+      "link-arrow": "[data-role='link-arrow']",
       badge: "[data-role='badge']",
-      content: "[data-role='content']",
-      title: "[data-role='title']",
-      sublabel: "[data-role='sublabel']",
-      arrow: "[data-role='arrow']",
+      divider: "[data-role='divider']",
     },
     layoutRecipes: {
       "헤더+통계바":
-        "update_design({ headline, headlineHighlight, heroGraphic:'golf', proofItems, showHandle:false, showAvatar:false })",
+        "update_design({ contentMaxWidth:765, logoImageUrl, headlineSegments, heroGraphic:'golf', proofItems, showHandle:false, showAvatar:false })",
       "라임 CTA":
-        "update_design({ featuredFill, featuredText }) + upsert_link({ linkId, featured:true, iconKey:'chat', span:2 })",
+        "update_design({ featuredFill, featuredText }) + upsert_link({ linkId, featured:true, leadingIconUrl, secondaryText, showDivider:true, showArrow:true, arrowStyle:'circle', span:2 })",
       "2열+일부전체":
         "upsert_section({ id, title, columns:2, mobileColumns:2, items:[...] }) + 전체폭 링크는 upsert_link({ linkId, span:2, mobileSpan:2 })",
       "1열 바로가기":
-        "upsert_section({ id, title, columns:1, items:[...] }) + 각 링크 iconKey",
+        "upsert_section({ id, title, columns:1, items:[...] }) + 각 링크 iconImageUrl/iconKey",
     },
     note: "페이지 콘텐츠를 임의로 바꾸지 말고, 사용자가 요청한 수정만 MCP 도구로 적용하세요.",
   };

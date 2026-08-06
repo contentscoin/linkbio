@@ -22,8 +22,13 @@ await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS layout text NOT NULL DEFAUL
 await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS icon_placement text NOT NULL DEFAULT 'leading'`;
 await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS icon_size integer NOT NULL DEFAULT 20`;
 await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS show_arrow boolean NOT NULL DEFAULT true`;
+await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS arrow_style text NOT NULL DEFAULT 'plain'`;
+await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS arrow_position text NOT NULL DEFAULT 'trailing'`;
+await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS show_divider boolean NOT NULL DEFAULT false`;
+await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS leading_icon_url text NOT NULL DEFAULT ''`;
+await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS secondary_text text NOT NULL DEFAULT ''`;
 await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS trailing_icon text NOT NULL DEFAULT ''`;
 await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS card_padding text NOT NULL DEFAULT ''`;
 await sql`ALTER TABLE links ADD COLUMN IF NOT EXISTS card_min_height integer NOT NULL DEFAULT 0`;
 
-console.log("links card renderer columns ready");
+console.log("links P0 visual renderer columns ready");

@@ -104,3 +104,11 @@
 [2026-08-06 20:42 KST]
 - PR #16 main 머지·프로덕션 배포 완료 (`34cbc03`).
 - 슬롯형 렌더러(data-role), iconImageUrl/layout/mobileSpan/CTA 전용 경로 라이브 확인.
+
+[2026-08-06 21:55 KST]
+- P0 시안 시각 렌더러 기능 구현 브랜치 `cursor/bio-p0-visual-renderer-509c`.
+- design: contentMaxWidth, logoImageUrl(+width/height/align), headlineSegments, heroGraphicUrl/size/position.
+- link: leadingIconUrl, secondaryText, showDivider, arrowStyle(plain|circle), arrowPosition, cardLayout 별칭.
+- 렌더러: page-root 포함 안정적 data-role, CTA 구분선/원형 화살표, customCss는 page-root 기준.
+- DB migrate-link-icons.mjs 컬럼 추가 실행. MCP 0.5.0 upsert_link/update_design/capabilities 확장.
+- /fmg 콘텐츠는 미적용(MCP 설정은 사용자). typecheck/build OK.

@@ -84,6 +84,14 @@ export type ProofItem = {
 
 export type HeaderAlign = "center" | "left";
 export type HeroGraphic = "none" | "golf";
+export type LogoAlign = "center" | "left" | "right";
+export type HeroGraphicPosition = "right" | "left" | "below" | "above";
+
+export type HeadlineSegment = {
+  text: string;
+  accent?: boolean;
+  breakAfter?: boolean;
+};
 
 export type PageDesign = {
   templateId?: string;
@@ -110,12 +118,24 @@ export type PageDesign = {
   proofItems?: ProofItem[];
   /** Brand wordmark / logo image (https) — separate from avatar */
   logoUrl?: string;
+  /** logoUrl alias */
+  logoImageUrl?: string;
+  logoWidth?: number;
+  logoHeight?: number;
+  logoAlign?: LogoAlign;
+  /** Content column max width in px (e.g. 765) */
+  contentMaxWidth?: number;
   /** Optional display headline (falls back to page.bio first line) */
   headline?: string;
   /** Substring inside headline to accent-color highlight */
   headlineHighlight?: string;
+  /** Explicit multi-part headline (overrides highlight parsing when set) */
+  headlineSegments?: HeadlineSegment[];
   headerAlign?: HeaderAlign;
   heroGraphic?: HeroGraphic;
+  heroGraphicUrl?: string;
+  heroGraphicSize?: number;
+  heroGraphicPosition?: HeroGraphicPosition;
   showHandle?: boolean;
   showAvatar?: boolean;
   size?: BioSize;
@@ -407,6 +427,59 @@ export function parsePageDesign(raw: unknown): PageDesign {
     heroGraphicRaw === "golf" || heroGraphicRaw === "none"
       ? heroGraphicRaw
       : undefined;
+  const logoAlignRaw = asString(data.logoAlign);
+  const logoAlign: LogoAlign | undefined =
+    logoAlignRaw === "left" ||
+    logoAlignRaw === "right" ||
+    logoAlignRaw === "center"
+      ? logoAlignRaw
+      : undefined;
+  const heroPosRaw = asString(data.heroGraphicPosition);
+  const heroGraphicPosition: HeroGraphicPosition | undefined =
+    heroPosRaw === "right" ||
+    heroPosRaw === "left" ||
+    heroPosRaw === "below" ||
+    heroPosRaw === "above"
+      ? heroPosRaw
+      : undefined;
+
+  const contentMaxWidth =
+    typeof data.contentMaxWidth === "number" && Number.isFinite(data.contentMaxWidth)
+      ? Math.min(960, Math.max(320, Math.floor(data.contentMaxWidth)))
+      : undefined;
+  const logoWidth =
+    typeof data.logoWidth === "number" && Number.isFinite(data.logoWidth)
+      ? Math.min(480, Math.max(24, Math.floor(data.logoWidth)))
+      : undefined;
+  const logoHeight =
+    typeof data.logoHeight === "number" && Number.isFinite(data.logoHeight)
+      ? Math.min(240, Math.max(16, Math.floor(data.logoHeight)))
+      : undefined;
+  const heroGraphicSize =
+    typeof data.heroGraphicSize === "number" &&
+    Number.isFinite(data.heroGraphicSize)
+      ? Math.min(240, Math.max(24, Math.floor(data.heroGraphicSize)))
+      : undefined;
+
+  const headlineSegments: HeadlineSegment[] = [];
+  if (Array.isArray(data.headlineSegments)) {
+    for (const raw of data.headlineSegments.slice(0, 24)) {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+      const row = raw as Record<string, unknown>;
+      const text = asString(row.text).slice(0, 120);
+      if (!text) continue;
+      headlineSegments.push({
+        text,
+        accent: row.accent === true,
+        breakAfter: row.breakAfter === true || row.break === true,
+      });
+    }
+  }
+
+  const logoUrl =
+    sanitizeHttpsUrl(asString(data.logoUrl)) ||
+    sanitizeHttpsUrl(asString(data.brandLogoUrl)) ||
+    sanitizeHttpsUrl(asString(data.logoImageUrl));
 
   return {
     templateId: asString(data.templateId).slice(0, 64) || undefined,
@@ -426,15 +499,22 @@ export function parsePageDesign(raw: unknown): PageDesign {
     tokens: hasToken ? tokens : undefined,
     sections: sections.length > 0 ? sections : undefined,
     proofItems: proofItems.length > 0 ? proofItems : undefined,
-    logoUrl:
-      sanitizeHttpsUrl(asString(data.logoUrl)) ||
-      sanitizeHttpsUrl(asString(data.brandLogoUrl)) ||
-      sanitizeHttpsUrl(asString(data.logoImageUrl)),
+    logoUrl,
+    logoImageUrl: logoUrl,
+    logoWidth,
+    logoHeight,
+    logoAlign,
+    contentMaxWidth,
     headline: asString(data.headline).slice(0, 160) || undefined,
     headlineHighlight:
       asString(data.headlineHighlight).slice(0, 80) || undefined,
+    headlineSegments:
+      headlineSegments.length > 0 ? headlineSegments : undefined,
     headerAlign,
     heroGraphic,
+    heroGraphicUrl: sanitizeHttpsUrl(asString(data.heroGraphicUrl)),
+    heroGraphicSize,
+    heroGraphicPosition,
     showHandle: data.showHandle === false ? false : undefined,
     showAvatar: data.showAvatar === false ? false : undefined,
     size: pickEnum(data.size, SIZES),
@@ -531,13 +611,22 @@ export function designAttrs(design: PageDesign) {
     tokens,
     sections: design.sections,
     proofItems: design.proofItems,
-    logoUrl: design.logoUrl,
+    logoUrl: design.logoUrl || design.logoImageUrl,
+    logoImageUrl: design.logoImageUrl || design.logoUrl,
+    logoWidth: design.logoWidth,
+    logoHeight: design.logoHeight,
+    logoAlign: design.logoAlign || "center",
+    contentMaxWidth: design.contentMaxWidth,
     headline: design.headline,
     headlineHighlight: design.headlineHighlight,
+    headlineSegments: design.headlineSegments,
     headerAlign: design.headerAlign || "center",
     heroGraphic: design.heroGraphic && design.heroGraphic !== "none"
       ? design.heroGraphic
       : undefined,
+    heroGraphicUrl: design.heroGraphicUrl,
+    heroGraphicSize: design.heroGraphicSize,
+    heroGraphicPosition: design.heroGraphicPosition || "right",
     showHandle: design.showHandle !== false,
     showAvatar: design.showAvatar !== false,
     size: design.size,
