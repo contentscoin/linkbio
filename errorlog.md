@@ -17,3 +17,10 @@
 - Location: `/admin` 템플릿 적용 (Server Action)
 - Cause: 배포 후 Server Action ID 회전·클라이언트/서버 빌드 불일치. 라디오 제출만으로는 templateId도 불안정.
 - Fix: `/api/admin/apply-template` classic POST + hidden templateId + SafeActionForm fallback
+
+
+[2026-08-06 10:46 KST]
+- Error: 프로덕션 로그인 실패 (Server Action / UnrecognizedActionError 추정)
+- Location: `/login` loginAction
+- Cause: 배포 후 Server Action ID 회전
+- Fix: `/api/auth/login` classic POST
