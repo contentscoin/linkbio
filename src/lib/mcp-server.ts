@@ -26,7 +26,7 @@ export function createOmoBioMcpServer(
 ) {
   const server = new McpServer({
     name: "omo-bio",
-    version: "0.3.0",
+    version: "0.4.0",
   });
 
   const defaultHandle =
@@ -79,7 +79,7 @@ export function createOmoBioMcpServer(
     {
       title: "링크 추가/수정",
       description:
-        "링크 버튼을 만들거나 수정합니다. linkId가 있으면 label/url 없이 변경 필드만 부분 수정(아이콘·배지·span·variant·featured 등). 신규 시 label+url 필수.",
+        "링크 버튼을 만들거나 수정합니다. linkId가 있으면 label/url 없이 변경 필드만 부분 수정(이미지 아이콘·배지·레이아웃·span·cta 화살표 등). 신규 시 label+url 필수.",
       inputSchema: {
         handle: defaultHandle,
         linkId: z
@@ -98,11 +98,31 @@ export function createOmoBioMcpServer(
           .max(3)
           .optional()
           .describe("그리드 가로 점유. 2면 한 줄 전체"),
+        mobileSpan: z
+          .number()
+          .min(1)
+          .max(3)
+          .optional()
+          .describe("모바일 그리드 가로 점유"),
         variant: z
           .string()
           .nullable()
           .optional()
           .describe("card|full|spotlight|featured"),
+        layout: z
+          .enum(["horizontal", "vertical"])
+          .optional()
+          .describe("카드 내부 레이아웃"),
+        iconPlacement: z
+          .enum(["leading", "top", "trailing"])
+          .optional()
+          .describe("아이콘 위치"),
+        iconSize: z
+          .number()
+          .min(12)
+          .max(64)
+          .optional()
+          .describe("아이콘 px 크기"),
         section: z.string().nullable().optional().describe("섹션/그룹 id"),
         groupId: z.string().nullable().optional().describe("section 별칭"),
         iconKey: z
@@ -117,11 +137,33 @@ export function createOmoBioMcpServer(
           .nullable()
           .optional()
           .describe("커스텀 아이콘 https URL (iconKey보다 우선)"),
+        iconImageUrl: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("링크별 이미지 아이콘 https URL (SVG/PNG). iconKey보다 우선"),
         badge: z
           .string()
           .nullable()
           .optional()
           .describe("카드 배지 텍스트, 예: 대표 서비스"),
+        showArrow: z.boolean().optional().describe("우측 화살표 표시 여부"),
+        trailingIcon: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("화살표 대신 표시할 trailing 문자/심볼"),
+        cardPadding: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("카드 내부 패딩 (예: 12px 14px)"),
+        cardMinHeight: z
+          .number()
+          .min(0)
+          .max(320)
+          .optional()
+          .describe("카드 최소 높이(px)"),
       },
     },
     async (args) =>
@@ -374,6 +416,7 @@ export function createOmoBioMcpServer(
               id: z.string(),
               title: z.string().optional(),
               columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+              mobileColumns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
               layout: z.enum(["full", "grid", "stack"]).optional(),
               order: z.number().optional(),
               items: z.array(z.string()).optional(),
@@ -395,6 +438,8 @@ export function createOmoBioMcpServer(
           .nullable()
           .optional()
           .describe("브랜드 로고 https URL. null이면 제거"),
+        brandLogoUrl: z.string().nullable().optional().describe("logoUrl 별칭"),
+        logoImageUrl: z.string().nullable().optional().describe("logoUrl 별칭"),
         headline: z.string().nullable().optional(),
         headlineHighlight: z
           .string()
@@ -427,6 +472,10 @@ export function createOmoBioMcpServer(
         id: z.string(),
         title: z.string().optional(),
         columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+        mobileColumns: z
+          .union([z.literal(1), z.literal(2), z.literal(3)])
+          .optional()
+          .describe("모바일 컬럼 수"),
         layout: z.enum(["full", "grid", "stack"]).optional(),
         order: z.number().optional(),
         items: z.array(z.string()).optional(),

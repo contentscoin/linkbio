@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import NextLink from "next/link";
 import { and, asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import type { CSSProperties } from "react";
 import { getDb } from "@/db";
 import { links, pages, type Link } from "@/db/schema";
 import { FairwayScene } from "@/components/fairway-scene";
@@ -58,16 +59,31 @@ export async function generateMetadata({
 function LinkIcon({
   iconKey,
   iconUrl,
+  iconImageUrl,
+  iconSize,
   accent,
 }: {
   iconKey: string;
   iconUrl: string;
+  iconImageUrl: string;
+  iconSize: number;
   accent?: boolean;
 }) {
-  if (iconUrl) {
+  const size = Math.min(64, Math.max(12, iconSize || 20));
+  const style = { "--icon-size": `${size}px` } as CSSProperties;
+  const imageUrl = iconImageUrl || iconUrl;
+  if (imageUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img className="bio-link-icon-img" src={iconUrl} alt="" width={28} height={28} />
+      <img
+        className="bio-link-icon-img"
+        src={imageUrl}
+        alt=""
+        width={size}
+        height={size}
+        style={style}
+        data-role="icon"
+      />
     );
   }
   const path = linkIconPath(iconKey);
@@ -76,10 +92,30 @@ function LinkIcon({
     <span
       className={accent ? "bio-link-icon bio-link-icon--accent" : "bio-link-icon"}
       aria-hidden="true"
+      style={style}
+      data-role="icon"
     >
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d={path} />
       </svg>
+    </span>
+  );
+}
+
+function TrailingMark({
+  featured,
+  showArrow,
+  trailingIcon,
+}: {
+  featured: boolean;
+  showArrow: boolean;
+  trailingIcon: string;
+}) {
+  if (!showArrow && !trailingIcon) return null;
+  const icon = trailingIcon || (featured ? "→" : "›");
+  return (
+    <span className="bio-link-mark" aria-hidden="true" data-role="arrow">
+      {icon}
     </span>
   );
 }
@@ -105,22 +141,43 @@ function GolfHeroGraphic() {
   );
 }
 
-function BioLinkCard({ link }: { link: Link }) {
+function BioLinkCard({ link, forceCta = false }: { link: Link; forceCta?: boolean }) {
   const span = link.span >= 2 || link.featured ? 2 : Math.max(1, link.span || 1);
+  const mobileSpan =
+    link.mobileSpan >= 2 || link.featured ? 2 : Math.max(1, link.mobileSpan || 1);
   const isSpotlight = link.variant === "spotlight";
-  const variant = link.featured
+  const isCta = forceCta || link.featured;
+  const variant = isCta
     ? "featured"
     : isSpotlight
       ? "spotlight"
       : link.variant === "full"
         ? "full"
         : link.variant || "card";
-  const role = link.featured ? "cta" : "link";
+  const role = isCta ? "cta-card" : "card";
+  const layout =
+    link.layout === "vertical" || (isCta && link.layout !== "horizontal")
+      ? "vertical"
+      : "horizontal";
+  const iconPlacement =
+    link.iconPlacement === "top" || link.iconPlacement === "trailing"
+      ? link.iconPlacement
+      : "leading";
+  const hasIcon = Boolean(link.iconImageUrl || link.iconUrl || link.iconKey);
+  const showArrow = link.showArrow !== false;
+  const style: CSSProperties = {};
+  if (typeof link.cardMinHeight === "number" && link.cardMinHeight > 0) {
+    style.minHeight = `${Math.min(320, link.cardMinHeight)}px`;
+  }
+  if (link.cardPadding) {
+    style.padding = link.cardPadding;
+  }
   const className = [
     "bio-link",
     link.featured ? "bio-link--featured" : "",
     isSpotlight ? "bio-link--spotlight" : "",
-    link.iconKey || link.iconUrl ? "bio-link--has-icon" : "",
+    hasIcon ? "bio-link--has-icon" : "",
+    layout === "vertical" ? "bio-link--layout-vertical" : "bio-link--layout-horizontal",
   ]
     .filter(Boolean)
     .join(" ");
@@ -135,27 +192,61 @@ function BioLinkCard({ link }: { link: Link }) {
       data-role={role}
       data-variant={variant}
       data-span={String(span)}
+      data-mobile-span={String(mobileSpan)}
       data-group={link.section || undefined}
       data-section={link.section || undefined}
       data-icon={link.iconKey || undefined}
+      data-layout={layout}
+      data-icon-placement={iconPlacement}
+      data-has-arrow={showArrow ? "1" : "0"}
+      style={style}
     >
-      {link.badge ? <span className="bio-link-badge">{link.badge}</span> : null}
-      <LinkIcon
-        iconKey={link.iconKey || ""}
-        iconUrl={link.iconUrl || ""}
-        accent={link.featured || isSpotlight}
-      />
-      <span className="bio-link-body">
-        <span className="bio-link-title">{link.label}</span>
-        {link.sublabel ? (
-          <span className="bio-link-sub">{link.sublabel}</span>
+      {iconPlacement !== "trailing" ? (
+        <LinkIcon
+          iconKey={link.iconKey || ""}
+          iconUrl={link.iconUrl || ""}
+          iconImageUrl={link.iconImageUrl || ""}
+          iconSize={link.iconSize || 20}
+          accent={link.featured || isSpotlight}
+        />
+      ) : null}
+      <span className="bio-link-content" data-role="content">
+        {link.badge ? (
+          <span className="bio-link-badge" data-role="badge">
+            {link.badge}
+          </span>
         ) : null}
+        <span className="bio-link-body" data-role="body">
+          <span className="bio-link-title" data-role="title">
+            {link.label}
+          </span>
+          {link.sublabel ? (
+            <span className="bio-link-sub" data-role="sublabel">
+              {link.sublabel}
+            </span>
+          ) : null}
+        </span>
       </span>
-      <span className="bio-link-mark" aria-hidden="true">
-        {link.featured ? "→" : "›"}
-      </span>
+      {iconPlacement === "trailing" ? (
+        <LinkIcon
+          iconKey={link.iconKey || ""}
+          iconUrl={link.iconUrl || ""}
+          iconImageUrl={link.iconImageUrl || ""}
+          iconSize={link.iconSize || 20}
+          accent={link.featured || isSpotlight}
+        />
+      ) : null}
+      <TrailingMark
+        featured={isCta}
+        showArrow={showArrow}
+        trailingIcon={link.trailingIcon || ""}
+      />
     </a>
   );
+}
+
+function CtaLinkCard({ link }: { link: Link }) {
+  return <BioLinkCard link={{ ...link, featured: true }} forceCta />;
 }
 
 export default async function PublicPage({
@@ -356,11 +447,16 @@ export default async function PublicPage({
             <div
               className="bio-links"
               data-columns={String(section.columns)}
+              data-mobile-columns={String(section.mobileColumns)}
               data-group={section.id}
             >
-              {section.links.map((link) => (
-                <BioLinkCard key={link.id} link={link} />
-              ))}
+              {section.links.map((link) =>
+                link.featured ? (
+                  <CtaLinkCard key={link.id} link={link} />
+                ) : (
+                  <BioLinkCard key={link.id} link={link} />
+                ),
+              )}
             </div>
           </section>
         ))}

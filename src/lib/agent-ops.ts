@@ -48,6 +48,27 @@ function err(error: string, status = 400): AgentErr {
   return { ok: false, error, status };
 }
 
+function parseLinkLayout(value: unknown): "horizontal" | "vertical" | undefined {
+  if (typeof value !== "string") return undefined;
+  if (value === "horizontal" || value === "vertical") return value;
+  return undefined;
+}
+
+function parseIconPlacement(
+  value: unknown,
+): "leading" | "top" | "trailing" | undefined {
+  if (typeof value !== "string") return undefined;
+  if (value === "leading" || value === "top" || value === "trailing") {
+    return value;
+  }
+  return undefined;
+}
+
+function parseIconSize(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  return Math.min(64, Math.max(12, Math.floor(value)));
+}
+
 function parseHandle(raw: unknown) {
   return handleSchema.safeParse(typeof raw === "string" ? raw : "");
 }
@@ -242,11 +263,20 @@ export async function agentUpsertLink(
     if (typeof body.span === "number" && Number.isFinite(body.span)) {
       patch.span = Math.min(3, Math.max(1, Math.floor(body.span)));
     }
+    if (typeof body.mobileSpan === "number" && Number.isFinite(body.mobileSpan)) {
+      patch.mobileSpan = Math.min(3, Math.max(1, Math.floor(body.mobileSpan)));
+    }
     if (typeof body.variant === "string") {
       patch.variant = body.variant.trim().slice(0, 32) || "card";
     } else if (body.variant === null) {
       patch.variant = "card";
     }
+    const layout = parseLinkLayout(body.layout);
+    if (layout) patch.layout = layout;
+    const iconPlacement = parseIconPlacement(body.iconPlacement);
+    if (iconPlacement) patch.iconPlacement = iconPlacement;
+    const iconSize = parseIconSize(body.iconSize);
+    if (typeof iconSize === "number") patch.iconSize = iconSize;
     const section =
       typeof body.section === "string"
         ? body.section
@@ -271,6 +301,15 @@ export async function agentUpsertLink(
         patch.iconUrl = safe;
       }
     }
+    if (body.iconImageUrl !== undefined) {
+      if (body.iconImageUrl === null || body.iconImageUrl === "") {
+        patch.iconImageUrl = "";
+      } else if (typeof body.iconImageUrl === "string") {
+        const safe = sanitizeHttpsUrl(body.iconImageUrl);
+        if (!safe) return err("iconImageUrl은 https URL이어야 합니다.");
+        patch.iconImageUrl = safe;
+      }
+    }
     if (body.badge !== undefined) {
       patch.badge =
         body.badge === null
@@ -278,6 +317,28 @@ export async function agentUpsertLink(
           : typeof body.badge === "string"
             ? body.badge.trim().slice(0, 24)
             : "";
+    }
+    if (typeof body.showArrow === "boolean") {
+      patch.showArrow = body.showArrow;
+    }
+    if (body.trailingIcon !== undefined) {
+      patch.trailingIcon =
+        body.trailingIcon === null
+          ? ""
+          : typeof body.trailingIcon === "string"
+            ? body.trailingIcon.trim().slice(0, 48)
+            : "";
+    }
+    if (body.cardPadding !== undefined) {
+      patch.cardPadding =
+        body.cardPadding === null
+          ? ""
+          : typeof body.cardPadding === "string"
+            ? body.cardPadding.trim().slice(0, 32)
+            : "";
+    }
+    if (typeof body.cardMinHeight === "number" && Number.isFinite(body.cardMinHeight)) {
+      patch.cardMinHeight = Math.min(320, Math.max(0, Math.floor(body.cardMinHeight)));
     }
 
     const keys = Object.keys(patch).filter((k) => k !== "updatedAt");
@@ -327,9 +388,18 @@ export async function agentUpsertLink(
   if (typeof body.span === "number" && Number.isFinite(body.span)) {
     values.span = Math.min(3, Math.max(1, Math.floor(body.span)));
   }
+  if (typeof body.mobileSpan === "number" && Number.isFinite(body.mobileSpan)) {
+    values.mobileSpan = Math.min(3, Math.max(1, Math.floor(body.mobileSpan)));
+  }
   if (typeof body.variant === "string" && body.variant.trim()) {
     values.variant = body.variant.trim().slice(0, 32);
   }
+  const layout = parseLinkLayout(body.layout);
+  if (layout) values.layout = layout;
+  const iconPlacement = parseIconPlacement(body.iconPlacement);
+  if (iconPlacement) values.iconPlacement = iconPlacement;
+  const iconSize = parseIconSize(body.iconSize);
+  if (typeof iconSize === "number") values.iconSize = iconSize;
   const section =
     typeof body.section === "string"
       ? body.section
@@ -352,6 +422,15 @@ export async function agentUpsertLink(
       values.iconUrl = safe;
     }
   }
+  if (body.iconImageUrl !== undefined) {
+    if (body.iconImageUrl === null || body.iconImageUrl === "") {
+      values.iconImageUrl = "";
+    } else if (typeof body.iconImageUrl === "string") {
+      const safe = sanitizeHttpsUrl(body.iconImageUrl);
+      if (!safe) return err("iconImageUrl은 https URL이어야 합니다.");
+      values.iconImageUrl = safe;
+    }
+  }
   if (body.badge !== undefined) {
     values.badge =
       body.badge === null
@@ -359,6 +438,28 @@ export async function agentUpsertLink(
         : typeof body.badge === "string"
           ? body.badge.trim().slice(0, 24)
           : "";
+  }
+  if (typeof body.showArrow === "boolean") {
+    values.showArrow = body.showArrow;
+  }
+  if (body.trailingIcon !== undefined) {
+    values.trailingIcon =
+      body.trailingIcon === null
+        ? ""
+        : typeof body.trailingIcon === "string"
+          ? body.trailingIcon.trim().slice(0, 48)
+          : "";
+  }
+  if (body.cardPadding !== undefined) {
+    values.cardPadding =
+      body.cardPadding === null
+        ? ""
+        : typeof body.cardPadding === "string"
+          ? body.cardPadding.trim().slice(0, 32)
+          : "";
+  }
+  if (typeof body.cardMinHeight === "number" && Number.isFinite(body.cardMinHeight)) {
+    values.cardMinHeight = Math.min(320, Math.max(0, Math.floor(body.cardMinHeight)));
   }
 
   if (typeof values.sortOrder !== "number") {
@@ -380,7 +481,20 @@ export async function agentUpsertLink(
     section: typeof values.section === "string" ? values.section : "",
     iconKey: typeof values.iconKey === "string" ? values.iconKey : "",
     iconUrl: typeof values.iconUrl === "string" ? values.iconUrl : "",
+    iconImageUrl:
+      typeof values.iconImageUrl === "string" ? values.iconImageUrl : "",
     badge: typeof values.badge === "string" ? values.badge : "",
+    mobileSpan: typeof values.mobileSpan === "number" ? values.mobileSpan : 1,
+    layout: typeof values.layout === "string" ? values.layout : "horizontal",
+    iconPlacement:
+      typeof values.iconPlacement === "string" ? values.iconPlacement : "leading",
+    iconSize: typeof values.iconSize === "number" ? values.iconSize : 20,
+    showArrow: typeof values.showArrow === "boolean" ? values.showArrow : true,
+    trailingIcon:
+      typeof values.trailingIcon === "string" ? values.trailingIcon : "",
+    cardPadding: typeof values.cardPadding === "string" ? values.cardPadding : "",
+    cardMinHeight:
+      typeof values.cardMinHeight === "number" ? values.cardMinHeight : 0,
   });
 
   const fresh = (await getPageByHandle(loaded.handle)) ?? page;
@@ -808,9 +922,15 @@ export async function agentUpdateDesign(
   } else if (body.proofItems === null) {
     patch.proofItems = [];
   }
-  if (typeof body.logoUrl === "string") {
-    patch.logoUrl = body.logoUrl;
-  } else if (body.logoUrl === null) {
+  const logoInput =
+    body.logoUrl ?? body.brandLogoUrl ?? body.logoImageUrl;
+  if (typeof logoInput === "string") {
+    patch.logoUrl = logoInput;
+  } else if (
+    body.logoUrl === null ||
+    body.brandLogoUrl === null ||
+    body.logoImageUrl === null
+  ) {
     patch.logoUrl = undefined;
   }
   if (typeof body.headline === "string") {
@@ -846,7 +966,13 @@ export async function agentUpdateDesign(
     } else if (body.proofItems === null) {
       delete design.proofItems;
     }
-    if (body.logoUrl === null) delete design.logoUrl;
+    if (
+      body.logoUrl === null ||
+      body.brandLogoUrl === null ||
+      body.logoImageUrl === null
+    ) {
+      delete design.logoUrl;
+    }
     if (body.headline === null) delete design.headline;
     if (body.headlineHighlight === null) delete design.headlineHighlight;
   } catch (e) {
@@ -890,7 +1016,9 @@ export async function agentUpsertSection(
 
   const section = parseDesignSection(body);
   if (!section) {
-    return err("section id가 필요합니다. 예: { id, title, columns, items, order }");
+    return err(
+      "section id가 필요합니다. 예: { id, title, columns, mobileColumns, items, order }",
+    );
   }
 
   const design = parsePageDesign(loaded.page.design);
@@ -969,13 +1097,15 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       },
       proofItems: "[{ value, label }] 헤더 통계 바 (null이면 제거)",
       logoUrl: "브랜드 로고 https URL (null이면 제거)",
+      brandLogoUrl: "logoUrl 별칭",
+      logoImageUrl: "logoUrl 별칭",
       headline: "헤드라인 문자열",
       headlineHighlight: "headline 안에서 accent 강조할 부분",
       headerAlign: "center|left",
       heroGraphic: "none|golf",
       showHandle: "boolean",
       showAvatar: "boolean",
-      sections: "upsert_section 또는 update_design.sections",
+      sections: "upsert_section 또는 update_design.sections (mobileColumns 지원)",
       customCss: "set_custom_css (최후 수단)",
     },
     linkFields: {
@@ -986,8 +1116,17 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       featured: "true면 라임 CTA 역할 (featuredFill 적용)",
       iconKey: "내장 아이콘 키",
       iconUrl: "커스텀 아이콘 https (iconKey보다 우선)",
+      iconImageUrl: "링크별 이미지 아이콘 https (SVG/PNG 권장)",
+      iconSize: "12~64 px",
+      iconPlacement: "leading|top|trailing",
       badge: "카드 배지 텍스트 (예: 대표 서비스)",
       span: "1|2|3 — 그리드에서 가로 점유. 2면 한 줄 전체",
+      mobileSpan: "1|2|3 — 모바일 가로 점유",
+      layout: "horizontal|vertical",
+      showArrow: "우측 화살표 표시",
+      trailingIcon: "화살표 대신 표시할 문자/심볼",
+      cardPadding: "카드 내부 패딩 문자열",
+      cardMinHeight: "카드 최소 높이(px)",
       variant: "card|full|spotlight|featured",
       section: "섹션/그룹 id",
       sortOrder: "정렬 순서",
@@ -1000,13 +1139,22 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       spotlight: "강조 카드 (흰 배경+액센트 테두리, badge와 함께 사용)",
       featured: "링크 featured:true 권장 — CTA 색상 토큰 사용",
     },
+    rendererDataRoles: {
+      card: "a[data-role='card'|'cta-card']",
+      icon: "[data-role='icon']",
+      badge: "[data-role='badge']",
+      content: "[data-role='content']",
+      title: "[data-role='title']",
+      sublabel: "[data-role='sublabel']",
+      arrow: "[data-role='arrow']",
+    },
     layoutRecipes: {
       "헤더+통계바":
         "update_design({ headline, headlineHighlight, heroGraphic:'golf', proofItems, showHandle:false, showAvatar:false })",
       "라임 CTA":
         "update_design({ featuredFill, featuredText }) + upsert_link({ linkId, featured:true, iconKey:'chat', span:2 })",
       "2열+일부전체":
-        "upsert_section({ id, title, columns:2, items:[...] }) + 전체폭 링크는 upsert_link({ linkId, span:2 })",
+        "upsert_section({ id, title, columns:2, mobileColumns:2, items:[...] }) + 전체폭 링크는 upsert_link({ linkId, span:2, mobileSpan:2 })",
       "1열 바로가기":
         "upsert_section({ id, title, columns:1, items:[...] }) + 각 링크 iconKey",
     },

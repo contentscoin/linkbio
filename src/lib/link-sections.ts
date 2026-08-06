@@ -5,6 +5,7 @@ export type LinkSectionView = {
   id: string;
   title?: string;
   columns: 1 | 2 | 3;
+  mobileColumns: 1 | 2 | 3;
   links: Link[];
 };
 
@@ -37,6 +38,7 @@ export function groupLinksBySections(
       {
         id: "default",
         columns: 1,
+        mobileColumns: 1,
         links: pageLinks,
       },
     ];
@@ -50,6 +52,7 @@ export function groupLinksBySections(
 
   for (const section of ordered) {
     const columns = section.columns ?? (section.layout === "grid" ? 2 : 1);
+    const mobileColumns = section.mobileColumns ?? columns;
     const links: Link[] = [];
     if (section.items && section.items.length > 0) {
       for (const key of section.items) {
@@ -73,13 +76,14 @@ export function groupLinksBySections(
       id: section.id,
       title: section.title,
       columns,
+      mobileColumns,
       links,
     });
   }
 
   const rest = pageLinks.filter((l) => !used.has(l.id));
   if (rest.length > 0) {
-    views.push({ id: "more", columns: 1, links: rest });
+    views.push({ id: "more", columns: 1, mobileColumns: 1, links: rest });
   }
   return views;
 }

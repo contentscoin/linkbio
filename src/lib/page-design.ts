@@ -69,6 +69,8 @@ export type DesignSection = {
   title?: string;
   /** 1 = full width stack, 2+ = grid columns */
   columns?: 1 | 2 | 3;
+  /** Mobile columns override (default: columns fallback) */
+  mobileColumns?: 1 | 2 | 3;
   layout?: "full" | "grid" | "stack";
   order?: number;
   /** Link ids (preferred) or stable keys matched via link.section */
@@ -342,6 +344,13 @@ export function parsePageDesign(raw: unknown): PageDesign {
     const columns = ([1, 2, 3] as const).includes(columnsRaw as 1 | 2 | 3)
       ? (columnsRaw as 1 | 2 | 3)
       : 1;
+    const mobileColumnsRaw =
+      typeof row.mobileColumns === "number" ? row.mobileColumns : columns;
+    const mobileColumns = ([1, 2, 3] as const).includes(
+      mobileColumnsRaw as 1 | 2 | 3,
+    )
+      ? (mobileColumnsRaw as 1 | 2 | 3)
+      : columns;
     const layoutRaw = asString(row.layout);
     const layout =
       layoutRaw === "full" || layoutRaw === "grid" || layoutRaw === "stack"
@@ -359,6 +368,7 @@ export function parsePageDesign(raw: unknown): PageDesign {
       id,
       title: asString(row.title).slice(0, 80) || undefined,
       columns,
+      mobileColumns,
       layout,
       order:
         typeof row.order === "number" && Number.isFinite(row.order)
@@ -416,7 +426,10 @@ export function parsePageDesign(raw: unknown): PageDesign {
     tokens: hasToken ? tokens : undefined,
     sections: sections.length > 0 ? sections : undefined,
     proofItems: proofItems.length > 0 ? proofItems : undefined,
-    logoUrl: sanitizeHttpsUrl(asString(data.logoUrl)),
+    logoUrl:
+      sanitizeHttpsUrl(asString(data.logoUrl)) ||
+      sanitizeHttpsUrl(asString(data.brandLogoUrl)) ||
+      sanitizeHttpsUrl(asString(data.logoImageUrl)),
     headline: asString(data.headline).slice(0, 160) || undefined,
     headlineHighlight:
       asString(data.headlineHighlight).slice(0, 80) || undefined,
