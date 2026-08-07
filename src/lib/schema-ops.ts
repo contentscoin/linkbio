@@ -171,6 +171,15 @@ export function mergePageContent(
             ...(content.designOptions as PageSchema["designOptions"]),
           }
         : base.designOptions,
+    themeTokens:
+      content.themeTokens === null
+        ? undefined
+        : content.themeTokens && typeof content.themeTokens === "object"
+          ? {
+              ...(base.themeTokens || {}),
+              ...(content.themeTokens as PageSchema["themeTokens"]),
+            }
+          : base.themeTokens,
     sections: Array.isArray(content.sections)
       ? (content.sections as SchemaSection[])
       : base.sections,

@@ -437,14 +437,23 @@ export default async function PublicPage({
   if (attrs.featuredBorder) stageStyle["--featured-border"] = attrs.featuredBorder;
   if (attrs.tokens?.pageBackground) {
     stageStyle["--page-bg"] = attrs.tokens.pageBackground;
+    stageStyle["--bg"] = attrs.tokens.pageBackground;
   }
   if (attrs.tokens?.cardBackground) {
     stageStyle["--card-bg"] = attrs.tokens.cardBackground;
+    stageStyle["--card"] = attrs.tokens.cardBackground;
   }
-  if (attrs.tokens?.cardText) stageStyle["--card-fg"] = attrs.tokens.cardText;
-  if (attrs.tokens?.mutedText) stageStyle["--muted-fg"] = attrs.tokens.mutedText;
+  if (attrs.tokens?.cardText) {
+    stageStyle["--card-fg"] = attrs.tokens.cardText;
+    stageStyle["--fg"] = attrs.tokens.cardText;
+  }
+  if (attrs.tokens?.mutedText) {
+    stageStyle["--muted-fg"] = attrs.tokens.mutedText;
+    stageStyle["--fg-dim"] = attrs.tokens.mutedText;
+  }
   if (attrs.tokens?.borderColor) {
     stageStyle["--border-color"] = attrs.tokens.borderColor;
+    stageStyle["--line"] = attrs.tokens.borderColor;
   }
   if (attrs.logoWidth) stageStyle["--logo-w"] = `${attrs.logoWidth}px`;
   if (attrs.logoHeight) stageStyle["--logo-h"] = `${attrs.logoHeight}px`;

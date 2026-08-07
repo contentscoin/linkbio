@@ -458,7 +458,8 @@ const tools = [
   },
   {
     name: "update_page_content",
-    description: "구조화 Page Schema로 콘텐츠/테마/섹션 갱신. CSS 금지.",
+    description:
+      "구조화 Page Schema로 콘텐츠/테마/섹션 갱신. templateId 자유(커스텀 템플릿 조합 가능). CSS 금지.",
     inputSchema: {
       type: "object",
       properties: {
@@ -470,6 +471,12 @@ const tools = [
         brand: { type: "object", additionalProperties: true },
         sections: { type: "array" },
         designOptions: { type: "object", additionalProperties: true },
+        themeTokens: {
+          type: "object",
+          additionalProperties: true,
+          description:
+            "커스텀 팔레트 { accent, pageBackground, cardBackground, cardText, mutedText, borderColor, featuredBackground, featuredText }",
+        },
         canvas: {
           type: "object",
           additionalProperties: true,

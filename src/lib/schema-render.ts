@@ -8,8 +8,8 @@ import {
   flattenSchemaLinks,
   isSchemaDrivenTemplate,
   parsePageSchema,
+  resolveThemeTokens,
   schemaToDesignPatch,
-  themeTokens,
   type PageSchema,
 } from "@/lib/page-schema";
 
@@ -95,7 +95,7 @@ export function resolvePublicRender(input: {
     customCss: undefined,
   });
   const attrs = designAttrs(design);
-  const tokens = themeTokens(schema.theme);
+  const tokens = resolveThemeTokens(schema);
   const flat = flattenSchemaLinks(schema);
 
   const byKey = new Map(input.pageLinks.map((l) => [l.section, l]));
@@ -166,6 +166,7 @@ export function resolvePublicRender(input: {
         }
       : undefined);
 
+  const isFmgs = schema.templateId.startsWith("fmgs-");
   return {
     mode: "schema",
     schema,
@@ -178,11 +179,11 @@ export function resolvePublicRender(input: {
     footer: {
       label:
         footer?.label ||
-        schema.brand?.displayName ||
-        input.displayName ||
-        "FMGS",
-      url: footer?.url || "https://fmgs.co.kr",
-      style: footer?.style || "fmgs",
+        (isFmgs
+          ? schema.brand?.displayName || input.displayName || "FMGS"
+          : "OMO Bio로 만든 페이지"),
+      url: footer?.url || (isFmgs ? "https://fmgs.co.kr" : "/"),
+      style: footer?.style || (isFmgs ? "fmgs" : "omo"),
     },
     skipFairwayScene: true,
   };

@@ -803,11 +803,14 @@ export function createOmoBioMcpServer(
     {
       title: "페이지 스키마 업데이트",
       description:
-        "구조화된 Page Schema(또는 schema 필드)로 콘텐츠/테마/섹션을 갱신합니다. CSS 금지.",
+        "구조화된 Page Schema(또는 schema 필드)로 콘텐츠/테마/섹션을 갱신합니다. templateId는 자유 — 커스텀 템플릿을 만들어 조합 가능. CSS 금지.",
       inputSchema: {
         handle: defaultHandle,
         schema: z.record(z.string(), z.unknown()).optional(),
-        templateId: z.string().optional(),
+        templateId: z
+          .string()
+          .optional()
+          .describe("자유 문자열 — 예: my-cafe, custom-shop"),
         theme: z.string().optional(),
         contentWidth: z.union([z.string(), z.number()]).optional(),
         brand: z
@@ -815,7 +818,19 @@ export function createOmoBioMcpServer(
           .optional()
           .describe("{ displayName?, logoUrl?, showHandle?, showAvatar? }"),
         sections: z.array(z.unknown()).optional(),
-        designOptions: z.record(z.string(), z.unknown()).optional(),
+        designOptions: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe(
+            "layout(stack|bento|list)·headerAlign·logo/headline 크기·hero 위치·폰트 등",
+          ),
+        themeTokens: z
+          .record(z.string(), z.unknown())
+          .nullable()
+          .optional()
+          .describe(
+            "커스텀 팔레트 { accent, pageBackground, cardBackground, cardText, mutedText, borderColor, featuredBackground, featuredText } — 프리셋 theme 위에 색만 덮어씀",
+          ),
         canvas: z
           .record(z.string(), z.unknown())
           .nullable()

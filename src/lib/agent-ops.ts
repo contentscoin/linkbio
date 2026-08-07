@@ -1507,16 +1507,63 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
   return {
     ok: true,
     purpose:
-      "페이지는 Page Schema + 템플릿 렌더러로 편집합니다. GPT는 CSS를 직접 쓰지 말고 구조화 스키마만 전달하세요.",
+      "페이지는 Page Schema + 템플릿 렌더러로 편집합니다. GPT는 CSS를 직접 쓰지 말고 구조화 스키마만 전달하세요. templateId는 자유 문자열 — 기존 템플릿 없이도 sections+themeTokens+designOptions 조합으로 원하는 디자인을 처음부터 만들 수 있습니다.",
     preferredWorkflow: [
       "1) open_profile_designer — ChatGPT 안에 제작 위젯 (가능하면)",
-      "2) list_templates → get_template(templateId)",
-      "3) create_page_from_template({ templateId:'fmgs-exact', ... }) 또는 fmgs-premium",
+      "2) list_templates → get_template(templateId) — 출발점이 필요할 때",
+      "3) create_page_from_template 또는 update_page_content(schema)로 커스텀 템플릿 직접 구성",
       "4) update_page_content / update_section / upsert_component",
       "5) upload_asset → brand.logoUrl / item.iconImageUrl 연결",
       "6) validate_page → save_draft 또는 publish_page",
       "7) render_preview / get_preview_url 로 bio.omo.co.kr 확인",
     ],
+    customTemplateGuide: {
+      concept:
+        "템플릿은 시작점일 뿐. update_page_content에 완전한 schema를 넘기면 어떤 templateId든 schema-first로 렌더됩니다.",
+      sectionTypes: [
+        "hero — headline/headlineSegments/stats/heroGraphic('golf'|'none')/heroGraphicUrl",
+        "cta — item { label,url,secondaryText,iconKey,showDivider,showArrow,arrowStyle }",
+        "serviceGrid — columns/mobileColumns/gap + items[{ id,label,url,iconKey,badge,variant,span,cardMinHeight }]",
+        "shortcuts — columns:1 + items variant:'full' → 전체폭 스택",
+        "social — 아이콘 링크 목록",
+        "footer — 또는 top-level footer { label,url,style }",
+      ],
+      themeTokens:
+        "theme 프리셋(navy-lime|fairway|noir|corporate) 위에 themeTokens로 색만 교체하거나, 임의 theme 이름 + 전체 팔레트 지정",
+      designOptions:
+        "layout(stack|bento|list), headerAlign, logoWidth/Height, headlineFontSize, heroGraphicSize/Position, font, radius, buttonStyle, 폰트 크기/행간/자간",
+      example: {
+        version: 1,
+        templateId: "my-cafe",
+        theme: "custom",
+        contentWidth: 480,
+        themeTokens: {
+          accent: "#E8734A",
+          pageBackground: "#FBF6EF",
+          cardBackground: "#FFFFFF",
+          cardText: "#2B2018",
+          mutedText: "#8A7A6D",
+          borderColor: "#EADFD2",
+          featuredBackground: "#E8734A",
+          featuredText: "#FFFFFF",
+        },
+        designOptions: { layout: "stack", headerAlign: "center", radius: "round" },
+        sections: [
+          { type: "hero", headline: "동네에서 제일 진한 에스프레소" },
+          {
+            type: "cta",
+            item: { label: "예약하기", url: "https://example.com", showArrow: true },
+          },
+          {
+            type: "shortcuts",
+            columns: 1,
+            items: [
+              { id: "menu", label: "메뉴", url: "https://example.com/menu", variant: "full" },
+            ],
+          },
+        ],
+      },
+    },
     workflow: [
       "권장: open_profile_designer → list_templates → create_page_from_template → update_page_content → validate_page → publish_page",
       "레거시(스키마 없을 때만): get_page → update_design / upsert_section / upsert_link → get_preview_url",
