@@ -9,6 +9,7 @@ import { FairwayScene } from "@/components/fairway-scene";
 import { highlightHeadline, type HeadlineSegment } from "@/lib/headline";
 import { linkIconPath } from "@/lib/link-icons";
 import { groupLinksBySections } from "@/lib/link-sections";
+import { escapeCssForStyleTag } from "@/lib/page-design";
 import { resolvePublicRender } from "@/lib/schema-render";
 
 export const dynamic = "force-dynamic";
@@ -540,7 +541,9 @@ export default async function PublicPage({
       {attrs.customCss ? (
         <style
           data-role="page-custom-css"
-          dangerouslySetInnerHTML={{ __html: attrs.customCss }}
+          dangerouslySetInnerHTML={{
+            __html: escapeCssForStyleTag(attrs.customCss),
+          }}
         />
       ) : null}
 

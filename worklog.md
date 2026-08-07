@@ -226,3 +226,20 @@
 - 사용자 요청으로 /fmg 잔여 데이터 2건을 에이전트가 직접 처리(프로덕션 DB, 백업 후 앱 로직 재사용):
   hero.align=center, shortcuts의 variant:"footer" 아이템(home) 제거, top-level footer{FMGS 홈} 설정, 게시.
 - 라이브 검증: data-header=center, footer 카드 제거, bio-foot--fmgs "FMGS 홈", CTA 140/서비스 296/spotlight/전체폭 유지.
+
+[2026-08-07 21:40 KST]
+- 코드베이스 문제점 점검(전체 감사) 후 저장형 XSS 2건 수정.
+- (1) customCss `</style>` 브레이크아웃: sanitizeCustomCss 차단 목록이 `<script`만 막고
+  `</style>`를 막지 않아 `</style><img src=x onerror=...>` 가 통과 → `/{handle}` 공개 페이지의
+  `<style dangerouslySetInnerHTML>`(page.tsx:543)로 주입. 방문자 브라우저에서 bio.omo.co.kr
+  오리진 JS 실행 → 로그인 사용자 명의로 /settings MCP 토큰 발급까지 가능(테넌트 간 탈취).
+  수정: `<` 문자 자체를 거부(`>` 자식 결합자는 유지) + 렌더 시 `\3c` 이스케이프(2중 방어).
+- (2) SVG 자산: assets.ts가 image/svg+xml 허용, /api/assets/[id]가 자체 오리진에서 그대로 서빙
+  (nosniff·CSP 없음) → 자산 URL 직접 이동 시 내부 스크립트 실행.
+  수정: 응답에 `CSP: default-src 'none'; ... sandbox` + `X-Content-Type-Options: nosniff`.
+  <img> 서브리소스는 CSP 미적용이라 기존 렌더 영향 없음.
+- 검증: 브레이크아웃 페이로드 6종 전부 거부, 정상 CSS 4종·내장 템플릿 스니펫 2종 통과,
+  렌더 이스케이프 후 `</style` 미생성. typecheck/build OK.
+- 미수정(보고만): designer postMessage 오리진 미검증, MCP 토큰 URL 쿼리 전달,
+  로그인/가입 레이트리밋 부재, published||isPublished fail-open, links.pageId·mcpTokenHash 인덱스 부재,
+  ratelimit Map 미만료, drizzle 마이그레이션 디렉터리 부재.
