@@ -184,3 +184,11 @@
 
 [2026-08-07 13:18 KST]
 - Production 배포 완료 (`7fcadf8` / PR #25 MERGED). schema-first FMGS + fmgs-exact 라이브.
+
+[2026-08-07 14:20 KST]
+- MCP 디자인 편집 보강: update_page_content가 footer/canvas 병합 지원(mergePageContent).
+- HTTP/stdio MCP 도구 스키마에 footer·canvas 노출, 0.8.3.
+- list_design_capabilities에 schemaFields(canvas/footer/logoUrl/heroGraphicUrl/cta.iconKey),
+  variant/cardMinHeight 필드, fmgs-exact·spotlight·footer 레시피 추가.
+- 스모크 테스트: fmgs-exact validation [], footer 부분 패치 병합, schema 모드 navy-lime,
+  spotlight/full span/CTA icon·divider 확인. typecheck/build OK.
