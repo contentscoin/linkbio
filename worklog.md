@@ -206,3 +206,18 @@
 [2026-08-07 15:18 KST]
 - PR #26 main 머지 (`4fd12f9`) → Production 배포 성공. MCP 0.8.3 라이브:
   커스텀 템플릿(임의 templateId schema-first)·themeTokens 팔레트·designOptions 일반화·footer/canvas 편집.
+
+[2026-08-07 16:30 KST]
+- 사용자 /fmg 라이브 DOM 검증: span 클램프·CTA 높이·1열 shortcuts·headline center 미반영 확인.
+- 원인: (1) BioLinkCard가 섹션 columns로 span 클램프 → data-span 전부 1,
+  (2) bento CSS가 data-columns 무시하고 2열 고정, (3) SchemaCta에 cardMinHeight 없음(flatten 유실),
+  (4) CSS가 center 헤더의 hero를 left로 강제.
+- 수정: span 클램프 제거(1..3 그대로), .bio-links[data-columns=N] grid 규칙(bento보다 우선),
+  SchemaCta.cardMinHeight/cardHeight + flatten 전달, hero.align 필드(headerAlign 오버라이드),
+  center hero CSS, fmgs-exact CTA 140px, unknown variant(footer 등) validate 워닝.
+- 스모크: CTA 140/span2, headerAlign center, shortcut span 유지, 워닝 동작. typecheck/build OK.
+
+[2026-08-07 17:18 KST]
+- PR #27 main 머지 (`5e4be22`) → Production 배포 성공.
+- /fmg 라이브 재검증: CTA min-height:140px + span2, 바로가기 variant full 전체폭(span2), spotlight 유지.
+- 남은 항목은 데이터 측: headline center는 hero.align 저장 필요, variant:"footer" 링크 아이템은 삭제 권장.
