@@ -181,3 +181,6 @@
 
 [2026-08-07 13:17 KST]
 - PR #25 main 머지 (`710140f`). Production 배포 트리거.
+
+[2026-08-07 13:18 KST]
+- Production 배포 완료 (`7fcadf8` / PR #25 MERGED). schema-first FMGS + fmgs-exact 라이브.
