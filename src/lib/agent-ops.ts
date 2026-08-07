@@ -1521,12 +1521,12 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       concept:
         "템플릿은 시작점일 뿐. update_page_content에 완전한 schema를 넘기면 어떤 templateId든 schema-first로 렌더됩니다.",
       sectionTypes: [
-        "hero — headline/headlineSegments/stats/heroGraphic('golf'|'none')/heroGraphicUrl",
-        "cta — item { label,url,secondaryText,iconKey,showDivider,showArrow,arrowStyle }",
+        "hero — headline/headlineSegments/stats/heroGraphic('golf'|'none')/heroGraphicUrl/align('left'|'center')",
+        "cta — item { label,url,secondaryText,iconKey,showDivider,showArrow,arrowStyle,cardMinHeight,cardHeight }",
         "serviceGrid — columns/mobileColumns/gap + items[{ id,label,url,iconKey,badge,variant,span,cardMinHeight }]",
-        "shortcuts — columns:1 + items variant:'full' → 전체폭 스택",
+        "shortcuts — columns:1 + items variant:'full' → 전체폭 스택 (variant는 card|full|spotlight만)",
         "social — 아이콘 링크 목록",
-        "footer — 또는 top-level footer { label,url,style }",
+        "footer는 섹션이 아니라 top-level footer { label,url,style:'fmgs'|'omo'|'none' } 사용 — variant:'footer' 링크 아이템은 일반 카드로 렌더됨",
       ],
       themeTokens:
         "theme 프리셋(navy-lime|fairway|noir|corporate) 위에 themeTokens로 색만 교체하거나, 임의 theme 이름 + 전체 팔레트 지정",

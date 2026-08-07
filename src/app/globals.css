@@ -33,6 +33,12 @@
 .bio-links[data-columns="1"]{display:grid;gap:var(--gap);grid-template-columns:1fr}
 .bio-link[data-span="2"],.bio-link[data-span="3"],.bio-link[data-variant=full]{grid-column:1/-1}
 .bio-link[data-span="1"]{grid-column:span 1}
+/* Section columns are authoritative — override bento's fixed 2-col grid */
+.bio .bio-links[data-columns="1"]{display:grid;grid-template-columns:1fr}
+.bio .bio-links[data-columns="2"]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.bio .bio-links[data-columns="3"]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.bio[data-layout=bento] .bio-links[data-columns="1"]{grid-template-columns:1fr}
+.bio[data-layout=bento] .bio-links[data-columns="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}
 .bio-links>.bio-link{min-width:0;height:100%}
 .bio-link[data-role=cta-card]{grid-column:1/-1}
 .bio-link[data-role=cta-card][data-force-span="1"]{grid-column:span 1}
@@ -68,7 +74,9 @@
 .bio-head[data-align=left] .bio-desc{margin-left:0}
 .bio-head[data-align=left] .bio-proof{margin-left:0}
 .bio-hero{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin:0 0 14px}
-.bio-head[data-align=center] .bio-hero{text-align:left}
+.bio-head[data-align=center] .bio-hero{text-align:center}
+.bio-head[data-align=center] .bio-hero:not(:has(.bio-hero-graphic,.bio-hero-graphic-img)){grid-template-columns:1fr}
+.bio-head[data-align=left] .bio-hero{text-align:left}
 .bio-headline{margin:0;font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1.35;color:var(--card-fg,var(--fg))}
 .bio-headline-accent{color:var(--accent)}
 .bio-hero-graphic{width:88px;height:66px;color:var(--accent);opacity:.9;flex:none}
