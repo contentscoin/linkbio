@@ -61,9 +61,9 @@ export const pages = pgTable(
     uniqueIndex("pages_user_id_unique").on(table.userId),
     uniqueIndex("pages_handle_unique").on(table.handle),
     // Backs findPageByMcpToken (lib/mcp-token.ts), which runs on every
-    // authenticated MCP request. Already present in production and declared
-    // here to close the drift — unique because two pages sharing a token hash
-    // would make that lookup's .limit(1) pick an arbitrary one.
+    // authenticated MCP request. Unique because that lookup does .limit(1), so
+    // two pages sharing a token hash would resolve to an arbitrary one.
+    // Multiple NULLs are still allowed, which is what pages without a token need.
     uniqueIndex("pages_mcp_token_hash_unique").on(table.mcpTokenHash),
   ],
 );
@@ -154,8 +154,8 @@ export const assets = pgTable(
       .defaultNow()
       .notNull(),
   },
-  // Already created in production by scripts/migrate-link-icons.mjs but never
-  // declared here; the name matches so this only closes the schema drift.
+  // scripts/migrate-link-icons.mjs creates this index but it was never declared
+  // here; the name matches so wherever that script has run, this is a no-op.
   // Backs the ON DELETE CASCADE from pages.
   (table) => [index("assets_page_id_idx").on(table.pageId)],
 );
