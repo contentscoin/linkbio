@@ -38,7 +38,7 @@ export function createOmoBioMcpServer(
 ) {
   const server = new McpServer({
     name: "omo-bio",
-    version: "0.8.0",
+    version: "0.8.1",
   });
 
   const defaultHandle =
@@ -1017,11 +1017,12 @@ export function createOmoBioMcpServer(
               type: "text" as const,
               text: [
                 `OMO Bio 프로필생성도우미를 실행하세요. handle=${target}`,
-                "1) start_profile_wizard 호출",
-                "2) 반환된 instruction/question을 사용자에게 질문",
-                "3) 답변을 answer_profile_wizard로 전달",
-                "4) done=true 될 때까지 반복",
-                "5) 필요하면 list_design_templates / apply_design_template / set_avatar_image / set_custom_css 로 디자인을 다듬기",
+                "1) open_profile_designer 호출 (가능하면 ChatGPT 위젯으로 진행)",
+                "2) 또는 start_profile_wizard → answer_profile_wizard 반복",
+                "3) list_templates → create_page_from_template(templateId)",
+                "4) update_page_content / upload_asset 으로 문구·로고·링크 채우기",
+                "5) validate_page → publish_page",
+                "중요: set_custom_css 사용 금지. MCP URL은 https://bio.omo.co.kr 만.",
                 "한국어로 친절하게 진행하세요.",
               ].join("\n"),
             },

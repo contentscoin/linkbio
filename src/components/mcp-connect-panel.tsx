@@ -77,6 +77,7 @@ export function McpConnectPanel({
   const tokenForSnippets = issuedToken || tokenPlaceholder;
   const mcpUrlWithToken = `${mcpUrl}?token=${tokenForSnippets}`;
   const baseUrl = agentUrl.replace(/\/api\/v1\/agent$/, "");
+  const looksLikeVercel = /vercel\.app/i.test(mcpUrl) || /vercel\.app/i.test(baseUrl);
 
   const cursorRemoteJson = JSON.stringify(
     {
@@ -130,26 +131,28 @@ export function McpConnectPanel({
     `  "${mcpUrl}" \\`,
     `  --header "Authorization: Bearer ${tokenForSnippets}"`,
     ``,
-    `# 또는 URL에 토큰 포함`,
+    `# 또는 URL에 토큰 포함 (ChatGPT/일부 클라이언트 권장)`,
     `claude mcp add --transport http omo-bio-${handle} \\`,
     `  "${mcpUrlWithToken}"`,
   ].join("\n");
 
   const curlExample = [
-    `# 내 페이지 조회`,
-    `curl -H "Authorization: Bearer ${tokenForSnippets}" \\`,
-    `  "${agentUrl}?action=page&handle=${handle}"`,
-    ``,
-    `# 프로필생성도우미 시작`,
+    `# 페이지 스키마 조회`,
     `curl -X POST -H "Authorization: Bearer ${tokenForSnippets}" \\`,
     `  -H "Content-Type: application/json" \\`,
-    `  -d '{"action":"start_profile_wizard","handle":"${handle}"}' \\`,
+    `  -d '{"action":"get_page_schema","handle":"${handle}"}' \\`,
     `  "${agentUrl}"`,
     ``,
-    `# 디자인 템플릿 적용`,
+    `# 템플릿으로 초안 생성`,
     `curl -X POST -H "Authorization: Bearer ${tokenForSnippets}" \\`,
     `  -H "Content-Type: application/json" \\`,
-    `  -d '{"action":"apply_design_template","handle":"${handle}","templateId":"noir-glass"}' \\`,
+    `  -d '{"action":"create_page_from_template","handle":"${handle}","templateId":"fmgs-premium"}' \\`,
+    `  "${agentUrl}"`,
+    ``,
+    `# 검증 후 게시`,
+    `curl -X POST -H "Authorization: Bearer ${tokenForSnippets}" \\`,
+    `  -H "Content-Type: application/json" \\`,
+    `  -d '{"action":"publish_page","handle":"${handle}"}' \\`,
     `  "${agentUrl}"`,
   ].join("\n");
 
@@ -161,23 +164,37 @@ export function McpConnectPanel({
         조회·수정할 수 있는 개인 MCP URL과 토큰입니다.
       </p>
 
+      <div className="notice notice--ok" style={{ marginBottom: 16 }}>
+        MCP URL은 반드시 <strong>https://bio.omo.co.kr/api/mcp</strong> 를
+        사용하세요. <code>*.vercel.app</code> 주소는 브라우저/보안 필터에
+        차단될 수 있습니다 (ERR_BLOCKED_BY_CS).
+      </div>
+
+      {looksLikeVercel ? (
+        <div className="auth-notice" style={{ marginBottom: 16 }}>
+          현재 표시된 URL에 vercel.app이 포함되어 있습니다. 배포 환경 변수{" "}
+          <code>NEXT_PUBLIC_SITE_URL=https://bio.omo.co.kr</code> 를 확인하세요.
+        </div>
+      ) : null}
+
       <ol className="mcp-steps">
         <li>
           아래에서 <strong>개인 토큰</strong>을 발급·복사합니다.
         </li>
         <li>
-          클라이언트별 가이드(Cursor / Claude / ChatGPT)에 MCP URL을
-          붙여넣습니다.
+          클라이언트에 MCP URL을 등록합니다. ChatGPT는{" "}
+          <code>?token=</code> 포함 URL을 권장합니다.
         </li>
         <li>
-          연결 후 <code>start_profile_wizard</code> 또는 프롬프트{" "}
-          <code>profile_creation_helper</code>로 프로필을 완성합니다.
+          연결 후 <code>open_profile_designer</code> 또는{" "}
+          <code>list_templates</code> → <code>create_page_from_template</code>{" "}
+          으로 시작합니다. CSS 직접 입력은 사용하지 마세요.
         </li>
       </ol>
 
       <CopyField label="MCP URL (원격 · Claude/GPT/Cursor)" value={mcpUrl} />
       <CopyField
-        label="MCP URL + 토큰 (헤더 미지원 클라이언트용)"
+        label="MCP URL + 토큰 (ChatGPT · 헤더 미지원 클라이언트 권장)"
         value={mcpUrlWithToken}
       />
       <CopyField label="REST Agent URL" value={agentUrl} />
@@ -230,10 +247,12 @@ export function McpConnectPanel({
         </li>
         <li>
           또는 로컬 stdio: 저장소의 <code>mcp/run.mjs</code> 경로를 사용합니다.
+          <code>LINKBIO_BASE_URL</code>은 <code>https://bio.omo.co.kr</code>{" "}
+          로 두세요.
         </li>
         <li>
-          채팅에서 「프로필생성도우미 시작해줘」라고 하면{" "}
-          <code>start_profile_wizard</code>가 동작합니다.
+          채팅에서 「프로필 디자이너 열어줘」→{" "}
+          <code>open_profile_designer</code>
         </li>
       </ol>
       <CopyField label="Cursor mcp.json (원격 URL)" value={cursorRemoteJson} multiline />
@@ -250,11 +269,11 @@ export function McpConnectPanel({
           <code>{mcpUrl}</code> (또는 토큰 포함 URL)을 등록합니다.
         </li>
         <li>
-          Claude Code: 아래 CLI를 실행한 뒤{" "}
-          <code>/mcp</code>로 연결을 확인합니다.
+          Claude Code: 아래 CLI를 실행한 뒤 <code>/mcp</code>로 확인합니다.
         </li>
         <li>
-          연결 후 「프로필생성도우미 작동시켜줘」→ 질의응답으로 프로필 완성.
+          연결 후 <code>open_profile_designer</code> 또는{" "}
+          <code>list_templates</code>로 시작합니다.
         </li>
       </ol>
       <CopyField
@@ -267,64 +286,65 @@ export function McpConnectPanel({
       <h3 className="mcp-guide-title">ChatGPT (Custom GPT / Connector)</h3>
       <ol className="mcp-steps">
         <li>
-          GPT Actions 또는 MCP Connector에 MCP URL을 등록합니다:{" "}
-          <code>{mcpUrl}</code>
+          MCP Connector에 <strong>토큰 포함 URL</strong>을 등록합니다:{" "}
+          <code>{mcpUrlWithToken}</code>
         </li>
         <li>
-          인증: Bearer 토큰(개인 MCP 토큰) 또는 URL{" "}
-          <code>?token=</code> 쿼리. (일부 ChatGPT Connector는 OAuth만
-          지원할 수 있습니다 — 그 경우 Claude/Cursor URL 방식을 권장합니다.)
+          도메인은 <code>bio.omo.co.kr</code>만 사용.{" "}
+          <code>*.vercel.app</code> 은 차단될 수 있습니다.
         </li>
         <li>
-          Instructions에 「연결 후 start_profile_wizard로 프로필을 완성한다」를
-          넣습니다.
+          Instructions: 「연결 후 open_profile_designer를 호출하고, CSS 대신
+          Page Schema(list_templates → create_page_from_template →
+          update_page_content → validate_page → publish_page)로 편집한다」
         </li>
         <li>
-          디자인 변경:{" "}
-          <code>list_design_capabilities</code> → <code>upload_asset</code> →{" "}
-          <code>update_design</code> / <code>upsert_section</code> /{" "}
-          <code>upsert_link</code> (부분 수정) /{" "}
-          <code>get_preview_url</code>
+          위젯이 지원되면 <code>open_profile_designer</code>가 ChatGPT 안에
+          템플릿/콘텐츠/미리보기 UI를 엽니다.
         </li>
       </ol>
 
-      <h3 className="mcp-guide-title">주요 도구</h3>
+      <h3 className="mcp-guide-title">주요 도구 (Page Schema · 권장)</h3>
       <ul className="mcp-tool-list">
         <li>
-          <code>list_design_capabilities</code> — 편집 가능 필드·아이콘·레시피
+          <code>open_profile_designer</code> — ChatGPT/MCP Apps 제작 위젯
         </li>
         <li>
-          <code>upload_asset</code> — dataUri/file → url·width·height·mimeType
-          (logoImageUrl/iconImageUrl/heroImageUrl)
+          <code>list_templates</code> / <code>get_template</code> — FMGS Premium
+          등 버전 템플릿
         </li>
         <li>
-          <code>update_design</code> —
-          tokens·sections·proofItems·logoImageUrl·headline·contentMaxWidth·featuredFill·typography
+          <code>create_page_from_template</code> — 템플릿으로 스키마 적용
         </li>
         <li>
-          <code>upsert_section</code> — columns·gap/sectionGap·rowGap·columnGap·items
+          <code>get_page_schema</code> / <code>update_page_content</code> /
+          <code>update_section</code> / <code>upsert_component</code>
         </li>
         <li>
-          <code>upsert_link</code> —
-          span·iconImageUrl·subtitlePlacement·arrowStyle·cardHeight 등 부분 수정
+          <code>upload_asset</code> — dataUri → url·width·height (로고/아이콘)
         </li>
         <li>
-          <code>get_page</code> / <code>get_preview_url</code> — layoutDebug·미리보기
+          <code>render_preview</code> / <code>validate_page</code>
+        </li>
+        <li>
+          <code>save_draft</code> / <code>publish_page</code> /{" "}
+          <code>restore_version</code>
+        </li>
+      </ul>
+
+      <h3 className="mcp-guide-title">레거시 도구 (스키마 없을 때만)</h3>
+      <ul className="mcp-tool-list">
+        <li>
+          <code>update_design</code> / <code>upsert_section</code> /{" "}
+          <code>upsert_link</code>
         </li>
         <li>
           <code>list_design_templates</code> /{" "}
-          <code>apply_design_template</code> — 템플릿
+          <code>apply_design_template</code>
         </li>
         <li>
-          <code>start_profile_wizard</code> /{" "}
-          <code>answer_profile_wizard</code> — 질의응답 프로필 완성
-        </li>
-        <li>
-          <code>set_avatar_image</code> /{" "}
-          <code>set_background_image</code> / <code>set_custom_css</code>
-        </li>
-        <li>
-          <code>update_profile</code> — 프로필
+          <code>set_custom_css</code> — 비권장. Page Schema 페이지에서는 쓰지
+          마세요.
         </li>
       </ul>
 
@@ -332,7 +352,8 @@ export function McpConnectPanel({
 
       <p className="hint" style={{ marginTop: 8 }}>
         개인 토큰은 내 페이지만 접근할 수 있으며, 다른 handle는 403입니다. MCP
-        URL은 Streamable HTTP(<code>/api/mcp</code>)입니다.
+        URL은 Streamable HTTP(<code>/api/mcp</code>)입니다. 도구 목록이 안
+        보이면 MCP를 재연결하세요.
       </p>
     </section>
   );

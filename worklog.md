@@ -158,3 +158,9 @@
 [2026-08-07 07:03 KST]
 - Production 배포 완료 (`8dd14e5`). 라이브 `/designer` 200, `x-matched-path=/designer` 확인.
 - PR #22 MERGED. Page Schema MCP Apps + 템플릿 엔진 프로덕션 반영.
+
+[2026-08-07 11:15 KST]
+- MCP 수정: siteOrigin이 *.vercel.app을 반환하지 않도록 고정(bio.omo.co.kr).
+- settings MCP 가이드를 Page Schema 중심으로 갱신, ChatGPT는 ?token= URL 권장.
+- list_design_capabilities / profile_creation_helper에서 set_custom_css 비권장.
+- HTTP/stdio MCP 0.8.1.
