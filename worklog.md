@@ -267,3 +267,21 @@
 - 미수정(보고만): MCP 토큰 URL 쿼리 전달, published||isPublished fail-open,
   links.pageId·mcpTokenHash 인덱스 부재, drizzle 마이그레이션 디렉터리 부재,
   스키마 모드 렌더러 URL 검증 우회, 가입 TOCTOU, syncLinksFromSchema N+1.
+
+[2026-08-07 22:45 KST]
+- 점검 보고서 7번(인덱스 부재) 수정.
+- links: WHERE page_id ORDER BY sort_order, created_at 가 매 공개 페이지 렌더마다 전체 스캔.
+  pages: findPageByMcpToken 이 매 MCP 요청마다 전체 스캔.
+  → links_page_id_sort_idx (page_id, sort_order, created_at), pages_mcp_token_hash_idx (mcp_token_hash).
+- assets_page_id_idx: scripts/migrate-link-icons.mjs:54가 이미 DB에 만들고 있었지만 schema.ts에
+  선언이 없던 드리프트 → 같은 이름으로 선언만 추가(프로덕션 무변경). pages ON DELETE CASCADE 뒷받침.
+- drizzle/ 마이그레이션 디렉터리가 없으므로 scripts/add-indexes.mjs 로 적용
+  (migrate-link-icons.mjs와 같은 관례, IF NOT EXISTS 멱등, 마지막에 3개 생성 확인).
+  DATABASE_URL=... node scripts/add-indexes.mjs
+- 검증: 로컬 PG16에 pages 5,000 / links 60,000 / assets 5,000 심고 EXPLAIN ANALYZE 전후 비교.
+  before: links = Seq Scan, Rows Removed by Filter 59,988 / pages = Seq Scan, Rows Removed 5,000.
+  after: links = Bitmap Index Scan (Heap Blocks 12) / pages = Index Scan.
+  enable_bitmapscan=off 로 인덱스가 ORDER BY도 만족할 수 있음 확인(Sort 노드 사라짐).
+  현재 행 수에서는 플래너가 bitmap+small sort를 선호 — 코드 주석도 그 사실대로 수정.
+  스크립트 재실행 시 3건 모두 skip(멱등). typecheck/build OK.
+- 주의: 프로덕션 적용은 db:push 가 아니라 위 스크립트 권장(db:push는 스키마 드리프트 시 파괴적일 수 있음).
