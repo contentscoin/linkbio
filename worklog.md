@@ -221,3 +221,8 @@
 - PR #27 main 머지 (`5e4be22`) → Production 배포 성공.
 - /fmg 라이브 재검증: CTA min-height:140px + span2, 바로가기 variant full 전체폭(span2), spotlight 유지.
 - 남은 항목은 데이터 측: headline center는 hero.align 저장 필요, variant:"footer" 링크 아이템은 삭제 권장.
+
+[2026-08-07 20:15 KST]
+- 사용자 요청으로 /fmg 잔여 데이터 2건을 에이전트가 직접 처리(프로덕션 DB, 백업 후 앱 로직 재사용):
+  hero.align=center, shortcuts의 variant:"footer" 아이템(home) 제거, top-level footer{FMGS 홈} 설정, 게시.
+- 라이브 검증: data-header=center, footer 카드 제거, bio-foot--fmgs "FMGS 홈", CTA 140/서비스 296/spotlight/전체폭 유지.
