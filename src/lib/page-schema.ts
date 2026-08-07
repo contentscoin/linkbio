@@ -99,6 +99,27 @@ export type SchemaDesignOptions = {
   mobileFontSize?: number;
   lineHeight?: number;
   letterSpacing?: string;
+  /** Card grid layout for the whole page */
+  layout?: "stack" | "bento" | "list";
+  headerAlign?: "left" | "center";
+  logoWidth?: number;
+  logoHeight?: number;
+  headlineFontSize?: number;
+  headlineMobileFontSize?: number;
+  heroGraphicSize?: number;
+  heroGraphicPosition?: "right" | "left" | "above" | "below";
+};
+
+/** Custom palette — overrides theme preset token by token. */
+export type SchemaThemeTokens = {
+  accent?: string;
+  pageBackground?: string;
+  cardBackground?: string;
+  cardText?: string;
+  mutedText?: string;
+  borderColor?: string;
+  featuredBackground?: string;
+  featuredText?: string;
 };
 
 export type PageSchema = {
@@ -116,6 +137,8 @@ export type PageSchema = {
   };
   sections: SchemaSection[];
   designOptions?: SchemaDesignOptions;
+  /** Custom colors — theme can be any name when tokens are provided */
+  themeTokens?: SchemaThemeTokens;
   footer?: {
     label?: string;
     url?: string;
@@ -211,6 +234,12 @@ export function parsePageSchema(raw: unknown): PageSchema | null {
       !Array.isArray(data.designOptions)
         ? (data.designOptions as SchemaDesignOptions)
         : undefined,
+    themeTokens:
+      data.themeTokens &&
+      typeof data.themeTokens === "object" &&
+      !Array.isArray(data.themeTokens)
+        ? (data.themeTokens as SchemaThemeTokens)
+        : undefined,
     footer:
       data.footer && typeof data.footer === "object" && !Array.isArray(data.footer)
         ? (data.footer as PageSchema["footer"])
@@ -220,6 +249,25 @@ export function parsePageSchema(raw: unknown): PageSchema | null {
 
 export function themeTokens(theme: string) {
   return THEME_TOKENS[theme] || THEME_TOKENS["navy-lime"]!;
+}
+
+/** Preset tokens merged with schema.themeTokens overrides — full palette. */
+export function resolveThemeTokens(schema: PageSchema): Required<
+  Pick<SchemaThemeTokens, "accent" | "featuredBackground" | "featuredText">
+> &
+  SchemaThemeTokens {
+  const preset = themeTokens(schema.theme);
+  const custom = schema.themeTokens || {};
+  return {
+    accent: custom.accent || preset.accent,
+    featuredBackground: custom.featuredBackground || preset.featuredFill,
+    featuredText: custom.featuredText || preset.featuredText,
+    pageBackground: custom.pageBackground || preset.pageBg,
+    cardBackground: custom.cardBackground,
+    cardText: custom.cardText,
+    mutedText: custom.mutedText,
+    borderColor: custom.borderColor,
+  };
 }
 
 /** Validate schema for mobile overflow / missing links / grid rules. */
@@ -332,7 +380,7 @@ export function validatePageSchema(schema: PageSchema): PageValidationIssue[] {
 }
 
 export function schemaToDesignPatch(schema: PageSchema): Record<string, unknown> {
-  const tokens = themeTokens(schema.theme);
+  const tokens = resolveThemeTokens(schema);
   const opts = schema.designOptions || {};
   const hero = schema.sections.find((s) => s.type === "hero");
   const proofItems =
@@ -410,23 +458,23 @@ export function schemaToDesignPatch(schema: PageSchema): Record<string, unknown>
     pageSchema: schema,
     templateId: schema.templateId,
     contentMaxWidth: contentWidthToPx(schema.contentWidth),
-    layout: isFmgs ? "bento" : undefined,
+    layout: opts.layout ?? (isFmgs ? "bento" : undefined),
     accent: tokens.accent,
-    featuredFill: tokens.featuredFill,
+    featuredFill: tokens.featuredBackground,
     featuredText: tokens.featuredText,
     tokens: {
-      pageBackground: tokens.pageBg || undefined,
-      cardBackground: isFmgs ? "#132a42" : undefined,
-      cardText: isFmgs ? "#f2f6fb" : undefined,
-      mutedText: isFmgs ? "#9fb0c3" : undefined,
-      borderColor: isFmgs ? "#1e3a55" : undefined,
-      featuredBackground: tokens.featuredFill,
+      pageBackground: tokens.pageBackground || undefined,
+      cardBackground: tokens.cardBackground || (isFmgs ? "#132a42" : undefined),
+      cardText: tokens.cardText || (isFmgs ? "#f2f6fb" : undefined),
+      mutedText: tokens.mutedText || (isFmgs ? "#9fb0c3" : undefined),
+      borderColor: tokens.borderColor || (isFmgs ? "#1e3a55" : undefined),
+      featuredBackground: tokens.featuredBackground,
       featuredText: tokens.featuredText,
     },
     logoImageUrl: schema.brand?.logoUrl,
     logoUrl: schema.brand?.logoUrl,
-    logoWidth: isFmgs ? 140 : undefined,
-    logoHeight: isFmgs ? 40 : undefined,
+    logoWidth: opts.logoWidth ?? (isFmgs ? 140 : undefined),
+    logoHeight: opts.logoHeight ?? (isFmgs ? 40 : undefined),
     showHandle: schema.brand?.showHandle === true,
     showAvatar: schema.brand?.showAvatar === true,
     headline,
@@ -435,11 +483,14 @@ export function schemaToDesignPatch(schema: PageSchema): Record<string, unknown>
     heroGraphic: heroGraphic || (heroImageUrl ? undefined : "none"),
     heroGraphicUrl: heroImageUrl,
     heroImageUrl,
-    heroGraphicSize: isFmgs ? 96 : undefined,
-    heroGraphicPosition: isFmgs ? "right" : undefined,
-    headerAlign: isFmgs ? "left" : undefined,
-    headlineFontSize: isFmgs ? 28 : opts.desktopFontSize,
-    headlineMobileFontSize: isFmgs ? 22 : opts.mobileFontSize,
+    heroGraphicSize: opts.heroGraphicSize ?? (isFmgs ? 96 : undefined),
+    heroGraphicPosition:
+      opts.heroGraphicPosition ?? (isFmgs ? "right" : undefined),
+    headerAlign: opts.headerAlign ?? (isFmgs ? "left" : undefined),
+    headlineFontSize:
+      opts.headlineFontSize ?? (isFmgs ? 28 : opts.desktopFontSize),
+    headlineMobileFontSize:
+      opts.headlineMobileFontSize ?? (isFmgs ? 22 : opts.mobileFontSize),
     sections: designSections,
     font: opts.font || (isFmgs ? "sans" : undefined),
     radius: opts.radius || (isFmgs ? "round" : undefined),
@@ -537,14 +588,11 @@ export function flattenSchemaLinks(schema: PageSchema): Array<{
   return out;
 }
 
-/** True when public page should render from pageSchema only (no Fairway legacy mix). */
+/**
+ * True when public page should render from pageSchema only (no legacy mix).
+ * Any template with a valid pageSchema is schema-driven — GPT can invent
+ * custom templateIds and compose designs entirely via MCP.
+ */
 export function isSchemaDrivenTemplate(templateId: string | undefined | null) {
-  if (!templateId) return false;
-  return (
-    templateId.startsWith("fmgs-") ||
-    templateId === "corporate-grid" ||
-    templateId === "product-launch" ||
-    templateId === "portfolio" ||
-    templateId === "photo-hero"
-  );
+  return Boolean(templateId && templateId.trim());
 }

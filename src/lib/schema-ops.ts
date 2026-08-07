@@ -171,9 +171,33 @@ export function mergePageContent(
             ...(content.designOptions as PageSchema["designOptions"]),
           }
         : base.designOptions,
+    themeTokens:
+      content.themeTokens === null
+        ? undefined
+        : content.themeTokens && typeof content.themeTokens === "object"
+          ? {
+              ...(base.themeTokens || {}),
+              ...(content.themeTokens as PageSchema["themeTokens"]),
+            }
+          : base.themeTokens,
     sections: Array.isArray(content.sections)
       ? (content.sections as SchemaSection[])
       : base.sections,
+    canvas:
+      content.canvas === null
+        ? undefined
+        : content.canvas && typeof content.canvas === "object"
+          ? (content.canvas as PageSchema["canvas"])
+          : base.canvas,
+    footer:
+      content.footer === null
+        ? undefined
+        : content.footer && typeof content.footer === "object"
+          ? {
+              ...(base.footer || {}),
+              ...(content.footer as PageSchema["footer"]),
+            }
+          : base.footer,
   };
   return next;
 }

@@ -184,3 +184,21 @@
 
 [2026-08-07 13:18 KST]
 - Production 배포 완료 (`7fcadf8` / PR #25 MERGED). schema-first FMGS + fmgs-exact 라이브.
+
+[2026-08-07 14:20 KST]
+- MCP 디자인 편집 보강: update_page_content가 footer/canvas 병합 지원(mergePageContent).
+- HTTP/stdio MCP 도구 스키마에 footer·canvas 노출, 0.8.3.
+- list_design_capabilities에 schemaFields(canvas/footer/logoUrl/heroGraphicUrl/cta.iconKey),
+  variant/cardMinHeight 필드, fmgs-exact·spotlight·footer 레시피 추가.
+- 스모크 테스트: fmgs-exact validation [], footer 부분 패치 병합, schema 모드 navy-lime,
+  spotlight/full span/CTA icon·divider 확인. typecheck/build OK.
+
+[2026-08-07 14:45 KST]
+- 사용자 피드백: 템플릿 의존이 아니라 MCP로 원하는 템플릿을 직접 만들고 디자인 구성 가능해야.
+- 일반화: isSchemaDrivenTemplate — pageSchema 있으면 어떤 templateId든 schema-first 렌더.
+- schema.themeTokens 커스텀 팔레트(8색) + resolveThemeTokens(프리셋 위 토큰 덮어쓰기).
+- designOptions 확장: layout/headerAlign/logo·headline 크기/hero 크기·위치 — FMGS 하드코딩 제거(fallback화).
+- 공개 페이지: tokens → --bg/--fg/--fg-dim/--line/--card 연결(미지 theme 이름도 완전 렌더).
+- footer 기본값 일반화(fmgs-*만 FMGS footer, 그 외 OMO). mergePageContent themeTokens 병합.
+- MCP: update_page_content에 themeTokens 노출, capabilities에 customTemplateGuide(섹션 타입/예시 스키마).
+- 스모크: my-cafe(custom-warm) 커스텀 팔레트 schema 렌더, 부분 패치, fmgs-exact 회귀 OK. typecheck/build OK.

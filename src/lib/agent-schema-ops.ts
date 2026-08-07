@@ -170,7 +170,7 @@ async function persistSchema(
   opts: { asDraft?: boolean; publish?: boolean; versionLabel?: string },
 ) {
   const design = applySchemaToDesign(page.design, schema, opts);
-  const tokens = (await import("@/lib/page-schema")).themeTokens(schema.theme);
+  const tokens = (await import("@/lib/page-schema")).resolveThemeTokens(schema);
   const pagePatch: Partial<typeof pages.$inferInsert> = {
     design,
     updatedAt: new Date(),
