@@ -32,7 +32,9 @@ await sql`CREATE INDEX IF NOT EXISTS links_page_id_sort_idx
           ON links (page_id, sort_order, created_at)`;
 
 // Read on every authenticated MCP/agent request (findPageByMcpToken).
-await sql`CREATE INDEX IF NOT EXISTS pages_mcp_token_hash_idx
+// Unique: two pages sharing a token hash would make that lookup's .limit(1)
+// pick an arbitrary one. Already present in production.
+await sql`CREATE UNIQUE INDEX IF NOT EXISTS pages_mcp_token_hash_unique
           ON pages (mcp_token_hash)`;
 
 // Already created by scripts/migrate-link-icons.mjs; repeated here so a fresh
@@ -44,7 +46,7 @@ const rows = await sql`
   WHERE schemaname = 'public'
     AND indexname IN (
       'links_page_id_sort_idx',
-      'pages_mcp_token_hash_idx',
+      'pages_mcp_token_hash_unique',
       'assets_page_id_idx'
     )
   ORDER BY indexname`;

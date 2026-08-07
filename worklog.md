@@ -285,3 +285,24 @@
   현재 행 수에서는 플래너가 bitmap+small sort를 선호 — 코드 주석도 그 사실대로 수정.
   스크립트 재실행 시 3건 모두 skip(멱등). typecheck/build OK.
 - 주의: 프로덕션 적용은 db:push 가 아니라 위 스크립트 권장(db:push는 스키마 드리프트 시 파괴적일 수 있음).
+
+[2026-08-07 23:20 KST]
+- add-indexes.mjs 프로덕션 적용. 적용 후 실제 DB를 조회하고 나서 두 가지가 드러남 — 정정 기록.
+- (a) pages_mcp_token_hash_unique 가 이미 존재했음. 내가 만든 pages_mcp_token_hash_idx 는
+  같은 컬럼 btree 중복 → DROP 하고 프로덕션을 원상 복구. schema.ts/스크립트도 실제와 맞게
+  uniqueIndex("pages_mcp_token_hash_unique") 로 수정(유니크가 findPageByMcpToken .limit(1) 의
+  모호성도 막으므로 원래 이게 맞음).
+- (b) links_page_id_position_idx (page_id, "position") 도 이미 존재. 코드는 sort_order 로 정렬하므로
+  이 인덱스는 현재 쿼리와 안 맞는 잔존물로 보임 — 판단 필요해서 건드리지 않음.
+- 최종 적용된 신규 인덱스는 links_page_id_sort_idx 하나. assets_page_id_idx 는 기존과 동일(무변경).
+- 실측: 프로덕션은 pages 7 / links 27 / assets 2 행. 이 규모에서는 플래너가 seq scan 을 택하며
+  인덱스는 사용되지 않음(정상). 즉 "인덱스 부재로 프로덕션 지연" 이라는 내 우선순위 판단은 틀렸음 —
+  데이터가 커질 때를 대비한 예방적 조치로만 유효.
+- 더 중요한 발견: 프로덕션에 repo 에 없는 테이블이 있음.
+  * rate_limits(key,count,reset_at) — key 예: "login-acct:<email>". 즉 프로덕션에는 이미
+    DB 기반 로그인 레이트리밋이 돌고 있었음. repo 코드에는 해당 참조가 전혀 없음.
+    → 보고서 5번("로그인 레이트리밋 없음")은 repo 기준으로는 맞지만 프로덕션 기준으로는 틀림.
+    PR #28 의 인메모리 리미터와 중복될 수 있으므로 머지 전 확인 필요.
+  * social_channels(13컬럼, 과거 insert 14건, 현재 0행) — repo 에 없음.
+  → 프로덕션 배포가 이 저장소 main 과 갈라져 있음(README 의 "프로모트된 배포가 기준" 경고와 일치).
+    저장소만 읽고 내린 결론은 프로덕션에 그대로 적용되지 않을 수 있음.

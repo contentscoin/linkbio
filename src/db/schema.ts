@@ -60,10 +60,11 @@ export const pages = pgTable(
   (table) => [
     uniqueIndex("pages_user_id_unique").on(table.userId),
     uniqueIndex("pages_handle_unique").on(table.handle),
-    // Every authenticated MCP request resolves the caller by token hash
-    // (lib/mcp-token.ts findPageByMcpToken) — without this it is a seq scan
-    // of `pages` per request.
-    index("pages_mcp_token_hash_idx").on(table.mcpTokenHash),
+    // Backs findPageByMcpToken (lib/mcp-token.ts), which runs on every
+    // authenticated MCP request. Already present in production and declared
+    // here to close the drift — unique because two pages sharing a token hash
+    // would make that lookup's .limit(1) pick an arbitrary one.
+    uniqueIndex("pages_mcp_token_hash_unique").on(table.mcpTokenHash),
   ],
 );
 
