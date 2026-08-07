@@ -178,3 +178,6 @@
 - schema 필드 매핑: logoUrl, heroGraphicUrl, CTA icon/divider/arrow, variant/span/cardMinHeight, footer.
 - publish 시 pages.theme/accent 동기화 + revalidatePath. navy-lime CSS 추가.
 - typecheck/build OK. 브랜치 `cursor/fmgs-exact-schema-renderer-509c`.
+
+[2026-08-07 13:17 KST]
+- PR #25 main 머지 (`710140f`). Production 배포 트리거.
