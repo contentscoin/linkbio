@@ -470,6 +470,16 @@ const tools = [
         brand: { type: "object", additionalProperties: true },
         sections: { type: "array" },
         designOptions: { type: "object", additionalProperties: true },
+        canvas: {
+          type: "object",
+          additionalProperties: true,
+          description: "아트보드 힌트 { width, height } — fmgs-exact: 853×1844",
+        },
+        footer: {
+          type: "object",
+          additionalProperties: true,
+          description: "{ label?, url?, style?: fmgs|omo|none }",
+        },
         publish: { type: "boolean" },
       },
       required: ["handle"],
@@ -622,7 +632,7 @@ const postActions = new Set([
 ]);
 
 const server = new Server(
-  { name: "omo-bio", version: "0.8.2" },
+  { name: "omo-bio", version: "0.8.3" },
   { capabilities: { tools: {} } },
 );
 

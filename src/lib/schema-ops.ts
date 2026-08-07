@@ -174,6 +174,21 @@ export function mergePageContent(
     sections: Array.isArray(content.sections)
       ? (content.sections as SchemaSection[])
       : base.sections,
+    canvas:
+      content.canvas === null
+        ? undefined
+        : content.canvas && typeof content.canvas === "object"
+          ? (content.canvas as PageSchema["canvas"])
+          : base.canvas,
+    footer:
+      content.footer === null
+        ? undefined
+        : content.footer && typeof content.footer === "object"
+          ? {
+              ...(base.footer || {}),
+              ...(content.footer as PageSchema["footer"]),
+            }
+          : base.footer,
   };
   return next;
 }

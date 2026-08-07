@@ -39,7 +39,7 @@ export function createOmoBioMcpServer(
 ) {
   const server = new McpServer({
     name: "omo-bio",
-    version: "0.8.2",
+    version: "0.8.3",
   });
 
   const defaultHandle =
@@ -810,9 +810,22 @@ export function createOmoBioMcpServer(
         templateId: z.string().optional(),
         theme: z.string().optional(),
         contentWidth: z.union([z.string(), z.number()]).optional(),
-        brand: z.record(z.string(), z.unknown()).optional(),
+        brand: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("{ displayName?, logoUrl?, showHandle?, showAvatar? }"),
         sections: z.array(z.unknown()).optional(),
         designOptions: z.record(z.string(), z.unknown()).optional(),
+        canvas: z
+          .record(z.string(), z.unknown())
+          .nullable()
+          .optional()
+          .describe("아트보드 힌트 { width, height } — fmgs-exact: 853×1844"),
+        footer: z
+          .record(z.string(), z.unknown())
+          .nullable()
+          .optional()
+          .describe("{ label?, url?, style?: fmgs|omo|none }"),
         publish: z.boolean().optional(),
       },
     },

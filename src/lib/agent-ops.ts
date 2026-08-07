@@ -1586,6 +1586,18 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       showArrow: "우측 화살표",
       arrowStyle: "plain|circle",
       showDivider: "CTA 세로 구분선",
+      variant: "card|full|spotlight — spotlight는 흰색 강조 카드",
+      cardMinHeight: "카드 최소 높이 px (서비스 그리드 148~156 권장)",
+      cardHeight: "카드 고정 높이 px",
+    },
+    schemaFields: {
+      canvas: "{ width, height } 아트보드 힌트 — fmgs-exact: 853×1844",
+      footer: "{ label, url, style: fmgs|omo|none } — FMGS 전용 footer",
+      "brand.logoUrl": "로고 이미지 https — upload_asset 후 연결",
+      "hero.heroGraphicUrl": "커스텀 hero 그래픽 https (heroImageUrl 별칭)",
+      "hero.headlineSegments": "[{ text, accent?, breakAfter? }]",
+      "cta.iconKey": "CTA 내장 아이콘",
+      "shortcuts.columns": "1이면 세로 스택, 아이템 variant:'full'로 전체폭",
     },
     tools: {
       open_profile_designer: "MCP Apps UI 위젯",
@@ -1621,6 +1633,8 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       divider: "[data-role='divider']",
     },
     recipes: {
+      fmgsExact:
+        "create_page_from_template({ templateId:'fmgs-exact', publish:true }) → upload_asset(로고) → update_page_content({ brand:{ logoUrl } }) → 실제 URL로 upsert_component → validate_page → publish_page",
       fmgsPremium:
         "create_page_from_template({ templateId:'fmgs-exact' }) → update_page_content(브랜드/헤드라인/URL) → upload_asset(로고/아이콘) → validate_page → publish_page",
       openDesigner: "open_profile_designer({ step:'template' })",
@@ -1628,6 +1642,12 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
         "upload_asset → update_page_content({ brand:{logoUrl}, sections hero }) 또는 레거시 update_design",
       twoByTwoServices:
         "스키마 serviceGrid columns:2, mobileColumns:2, items span:1 — 템플릿 엔진이 반응형 담당",
+      spotlightCard:
+        "upsert_component({ sectionId:'services', componentId:'fmg', component:{ variant:'spotlight' } }) — 흰색 강조 카드",
+      fmgsFooter:
+        "update_page_content({ footer:{ label:'FMGS 홈', url:'https://fmgs.co.kr', style:'fmgs' } })",
+      customHeroGraphic:
+        "upload_asset → update_section({ sectionId:'hero', patch:{ heroGraphicUrl } })",
     },
     icons: [...LINK_ICON_KEYS],
     publicOrigin: "https://bio.omo.co.kr",
