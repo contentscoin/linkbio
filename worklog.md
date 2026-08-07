@@ -243,3 +243,27 @@
 - 미수정(보고만): designer postMessage 오리진 미검증, MCP 토큰 URL 쿼리 전달,
   로그인/가입 레이트리밋 부재, published||isPublished fail-open, links.pageId·mcpTokenHash 인덱스 부재,
   ratelimit Map 미만료, drizzle 마이그레이션 디렉터리 부재.
+
+[2026-08-07 22:10 KST]
+- 점검 보고서 3번·5번 수정 (PR #28에 추가).
+- (3) /designer postMessage 브리지: 리스너가 event.origin을 검증하지 않고 위조 가능한
+  event.data.source만 확인, 송신은 targetOrigin "*". next.config.ts가 chatgpt.com·claude.ai·
+  *.oaiusercontent.com 프레이밍을 허용하므로 프레임 부모가 toolResult를 위조해 save_draft/
+  publish_page를 조종할 수 있었고, "*" 송신은 페이지 스키마를 아무 부모에게나 노출.
+  수정: src/lib/embed-origins.ts 신설(허용 오리진 단일 소스) → next.config.ts의 frame-ancestors와
+  클라이언트 검증이 같은 목록을 사용. 리스너는 event.origin + event.source===window.parent 확인,
+  송신은 referrer에서 유도해 허용 목록으로 검증한 오리진으로만. 미확인 호스트면 브리지 비활성화
+  (와일드카드 폴백 없음) — token 경로는 그대로 동작.
+- (5) 로그인/가입 레이트리밋: MCP 엔드포인트에만 있었음. bcrypt cost 12라 무차별 대입 + CPU 고갈 노출.
+  수정: authenticateWithPassword에 IP 10회/5분 + 이메일 5회/15분 게이트(라우트·서버액션 양쪽 커버),
+  signupAction에 IP 5회/1시간. 둘 다 bcrypt 이전에 차단.
+- 함께 수정(8번): ratelimit Map이 만료 버킷을 제거하지 않아 고유 키마다 무한 증가 →
+  MAX_BUCKETS 20k + 만료 제거 + 오래된 것부터 축출. 60k 고유 키 살포 시 5,085 / 20,000으로 유계 확인
+  (수정 전이면 60,000).
+- 검증: 오리진 매처 20케이스(evil.com·claude.ai.evil.com·http·대문자 등 거부),
+  레이트리밋 유닛 10케이스, 실서버 로그인 스로틀(이메일 6회차·IP 11회차 차단, 타 IP 무영향),
+  Playwright로 가입 위저드 실제 구동 → 6회차부터 차단 확인. /designer CSP 헤더는 리팩터 전후 동일.
+  typecheck/build OK.
+- 미수정(보고만): MCP 토큰 URL 쿼리 전달, published||isPublished fail-open,
+  links.pageId·mcpTokenHash 인덱스 부재, drizzle 마이그레이션 디렉터리 부재,
+  스키마 모드 렌더러 URL 검증 우회, 가입 TOCTOU, syncLinksFromSchema N+1.

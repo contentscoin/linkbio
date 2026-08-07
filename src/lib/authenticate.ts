@@ -1,18 +1,36 @@
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { createSession } from "@/lib/session";
+import { clientIpFromHeaders, enforceRateLimit } from "@/lib/ratelimit";
 import { emailSchema } from "@/lib/validation";
 
 export type LoginResult =
   | { ok: true }
   | { ok: false; message: string; field?: "email" | "password" };
 
+const THROTTLED = "로그인 시도가 너무 많습니다. 잠시 후 다시 시도하세요.";
+
+/** Per-IP first (cheapest gate), then per-account so a botnet cannot spread
+ *  a brute force for one email across many addresses. */
+const IP_ATTEMPTS = 10;
+const IP_WINDOW_MS = 5 * 60_000;
+const EMAIL_ATTEMPTS = 5;
+const EMAIL_WINDOW_MS = 15 * 60_000;
+
 export async function authenticateWithPassword(
   emailRaw: string,
   passwordRaw: string,
 ): Promise<LoginResult> {
+  // Throttle before any bcrypt work: cost-12 hashing is exactly the thing an
+  // attacker wants to make us do repeatedly.
+  const ip = clientIpFromHeaders(await headers());
+  if (!(await enforceRateLimit(`auth:login:ip:${ip}`, IP_ATTEMPTS, IP_WINDOW_MS))) {
+    return { ok: false, message: THROTTLED };
+  }
+
   const emailParsed = emailSchema.safeParse(emailRaw);
   const password = String(passwordRaw ?? "");
 
@@ -30,6 +48,11 @@ export async function authenticateWithPassword(
       message: "이메일 또는 비밀번호가 올바르지 않습니다.",
       field: "password",
     };
+  }
+
+  const emailKey = `auth:login:email:${emailParsed.data.toLowerCase()}`;
+  if (!(await enforceRateLimit(emailKey, EMAIL_ATTEMPTS, EMAIL_WINDOW_MS))) {
+    return { ok: false, message: THROTTLED };
   }
 
   try {
