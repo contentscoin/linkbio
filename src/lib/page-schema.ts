@@ -34,6 +34,8 @@ export type SchemaCta = {
   showDivider?: boolean;
   showArrow?: boolean;
   arrowStyle?: "plain" | "circle";
+  cardMinHeight?: number;
+  cardHeight?: number;
 };
 
 export type SchemaSection =
@@ -50,6 +52,8 @@ export type SchemaSection =
       heroImageUrl?: string;
       /** Alias of heroImageUrl */
       heroGraphicUrl?: string;
+      /** Header/headline alignment — overrides designOptions.headerAlign */
+      align?: "left" | "center";
     }
   | {
       type: "serviceGrid";
@@ -340,6 +344,25 @@ export function validatePageSchema(schema: PageSchema): PageValidationIssue[] {
         }
       }
     }
+    if (
+      section.type === "serviceGrid" ||
+      section.type === "shortcuts" ||
+      section.type === "social"
+    ) {
+      for (const item of section.items || []) {
+        if (
+          item.variant &&
+          !["card", "full", "spotlight"].includes(item.variant)
+        ) {
+          issues.push({
+            level: "warn",
+            code: "unknown_variant",
+            message: `'${item.label || item.id}' variant '${item.variant}'는 지원되지 않습니다 (card|full|spotlight). footer는 top-level footer 필드를 사용하세요.`,
+            path,
+          });
+        }
+      }
+    }
     if (section.type === "shortcuts") {
       for (const item of section.items || []) {
         if (!item.url) {
@@ -486,7 +509,10 @@ export function schemaToDesignPatch(schema: PageSchema): Record<string, unknown>
     heroGraphicSize: opts.heroGraphicSize ?? (isFmgs ? 96 : undefined),
     heroGraphicPosition:
       opts.heroGraphicPosition ?? (isFmgs ? "right" : undefined),
-    headerAlign: opts.headerAlign ?? (isFmgs ? "left" : undefined),
+    headerAlign:
+      (hero && hero.type === "hero" ? hero.align : undefined) ??
+      opts.headerAlign ??
+      (isFmgs ? "left" : undefined),
     headlineFontSize:
       opts.headlineFontSize ?? (isFmgs ? 28 : opts.desktopFontSize),
     headlineMobileFontSize:
@@ -548,6 +574,8 @@ export function flattenSchemaLinks(schema: PageSchema): Array<{
         showArrow: section.item.showArrow !== false,
         arrowStyle: section.item.arrowStyle || "circle",
         variant: "full",
+        cardMinHeight: section.item.cardMinHeight,
+        cardHeight: section.item.cardHeight,
       });
     } else if (
       section.type === "serviceGrid" ||

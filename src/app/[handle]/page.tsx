@@ -197,16 +197,15 @@ function HeadlineView({ parts }: { parts: HeadlineSegment[] }) {
 function BioLinkCard({
   link,
   forceCta = false,
-  sectionColumns = 1,
 }: {
   link: Link;
   forceCta?: boolean;
-  sectionColumns?: number;
 }) {
-  // Section grid fields win — never force featured to full width.
-  const maxCols = Math.max(1, sectionColumns || 1);
-  const span = Math.min(Math.max(1, link.span || 1), maxCols);
-  const mobileSpan = Math.min(Math.max(1, link.mobileSpan || 1), maxCols);
+  // Expose stored span as-is (1..3); CSS grid clamps to available columns.
+  // Never clamp by section columns — a 1-column section with span:2 items
+  // must still emit data-span="2" so full-width rules apply under bento.
+  const span = Math.min(Math.max(1, link.span || 1), 3);
+  const mobileSpan = Math.min(Math.max(1, link.mobileSpan || link.span || 1), 3);
   const rowSpan = Math.min(Math.max(1, link.rowSpan || 1), 3);
   const isSpotlight = link.variant === "spotlight";
   const isCta = forceCta || link.featured;
@@ -378,20 +377,8 @@ function BioLinkCard({
   );
 }
 
-function CtaLinkCard({
-  link,
-  sectionColumns,
-}: {
-  link: Link;
-  sectionColumns?: number;
-}) {
-  return (
-    <BioLinkCard
-      link={{ ...link, featured: true }}
-      forceCta
-      sectionColumns={sectionColumns}
-    />
-  );
+function CtaLinkCard({ link }: { link: Link }) {
+  return <BioLinkCard link={{ ...link, featured: true }} forceCta />;
 }
 
 export default async function PublicPage({
@@ -732,17 +719,9 @@ export default async function PublicPage({
             >
               {section.links.map((link) =>
                 link.featured ? (
-                  <CtaLinkCard
-                    key={link.id}
-                    link={link}
-                    sectionColumns={section.columns}
-                  />
+                  <CtaLinkCard key={link.id} link={link} />
                 ) : (
-                  <BioLinkCard
-                    key={link.id}
-                    link={link}
-                    sectionColumns={section.columns}
-                  />
+                  <BioLinkCard key={link.id} link={link} />
                 ),
               )}
             </div>

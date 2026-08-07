@@ -224,6 +224,7 @@ const FMGS_EXACT_SCHEMA: PageSchema = {
         showArrow: true,
         arrowStyle: "circle",
         iconKey: "chat",
+        cardMinHeight: 140,
       },
     },
     {
