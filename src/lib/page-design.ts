@@ -738,6 +738,7 @@ export function designAttrs(design: PageDesign) {
     backgroundImageUrl: design.backgroundImageUrl,
     avatarImageUrl: design.avatarImageUrl,
     customCss: design.customCss,
+    templateId: design.templateId,
   };
 }
 

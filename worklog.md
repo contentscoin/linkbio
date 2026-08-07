@@ -170,3 +170,11 @@
   샌드박스 CSP에 막히던 문제. self-contained 위젯 + _meta.ui.csp /
   openai/widgetCSP(frame/connect/resource/redirect domains) 선언.
 - /designer frame-ancestors에 chatgpt.com 등 허용. MCP 0.8.2.
+
+[2026-08-07 13:10 KST]
+- 원인: 공개 `/{handle}`가 pageSchema를 무시하고 레거시 design+links+Fairway를 렌더.
+- 수정: `resolvePublicRender` — `fmgs-*` 등 schema-driven 템플릿은 publishedSchema 단일 기준.
+- `fmgs-exact` 템플릿(853×1844 canvas, spotlight 파미골, full-width shortcuts, FMGS footer).
+- schema 필드 매핑: logoUrl, heroGraphicUrl, CTA icon/divider/arrow, variant/span/cardMinHeight, footer.
+- publish 시 pages.theme/accent 동기화 + revalidatePath. navy-lime CSS 추가.
+- typecheck/build OK. 브랜치 `cursor/fmgs-exact-schema-renderer-509c`.

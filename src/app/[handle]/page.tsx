@@ -9,7 +9,7 @@ import { FairwayScene } from "@/components/fairway-scene";
 import { highlightHeadline, type HeadlineSegment } from "@/lib/headline";
 import { linkIconPath } from "@/lib/link-icons";
 import { groupLinksBySections } from "@/lib/link-sections";
-import { designAttrs, parsePageDesign } from "@/lib/page-design";
+import { resolvePublicRender } from "@/lib/schema-render";
 
 export const dynamic = "force-dynamic";
 
@@ -404,12 +404,19 @@ export default async function PublicPage({
   if (!data) notFound();
 
   const { page, pageLinks } = data;
-  const design = parsePageDesign(page.design);
-  const attrs = designAttrs(design);
+  const resolved = resolvePublicRender({
+    designRaw: page.design,
+    pageLinks,
+    pageTheme: page.theme,
+    pageAccent: page.accent,
+    displayName: page.displayName,
+  });
+  const attrs = resolved.attrs;
+  const renderLinks = resolved.links;
   const avatar =
     page.avatarInitials || page.avatarText || page.displayName.slice(0, 2);
-  const accent = page.accent || "#2d6a4f";
-  const theme = page.theme || "fairway";
+  const accent = resolved.accent;
+  const theme = resolved.theme;
   const logoUrl = attrs.logoImageUrl || attrs.logoUrl;
   const stageStyle: Record<string, string> = {
     ["--accent"]: accent,
@@ -456,7 +463,7 @@ export default async function PublicPage({
     stageStyle["--headline-size-mobile"] = `${attrs.headlineMobileFontSize}px`;
   }
 
-  const sectionViews = groupLinksBySections(pageLinks, attrs.sections);
+  const sectionViews = groupLinksBySections(renderLinks, attrs.sections);
   const hasTokens = Boolean(
     attrs.tokens && Object.values(attrs.tokens).some(Boolean),
   );
@@ -483,12 +490,16 @@ export default async function PublicPage({
   }
 
   const heroPos = attrs.heroGraphicPosition || "right";
+  const footer = resolved.footer;
 
   return (
     <div
       className="bio-stage"
       data-role="page-root"
       data-theme={theme}
+      data-render-mode={resolved.mode}
+      data-template={resolved.schema?.templateId || attrs.templateId || undefined}
+      data-schema-version={resolved.schemaVersionId || undefined}
       data-pattern={attrs.pattern}
       data-motion={attrs.motion}
       data-effect={attrs.effect}
@@ -513,6 +524,8 @@ export default async function PublicPage({
           <div className="bio-scrim" aria-hidden="true" />
           <div className="bio-fx" aria-hidden="true" />
         </>
+      ) : resolved.skipFairwayScene || theme === "navy-lime" ? (
+        <div className="bio-bg bio-bg--solid" aria-hidden="true" />
       ) : theme === "fairway" || !page.theme ? (
         <FairwayScene />
       ) : theme === "aurora" ? (
@@ -728,9 +741,21 @@ export default async function PublicPage({
           );
         })}
 
-        <footer className="bio-foot bio-rise" data-role="footer">
-          <NextLink href="/">OMO Bio로 만든 페이지</NextLink>
-        </footer>
+        {footer.style !== "none" ? (
+          <footer
+            className={`bio-foot bio-rise bio-foot--${footer.style}`}
+            data-role="footer"
+            data-footer-style={footer.style}
+          >
+            {footer.url.startsWith("/") ? (
+              <NextLink href={footer.url}>{footer.label}</NextLink>
+            ) : (
+              <a href={footer.url} target="_blank" rel="noopener noreferrer">
+                {footer.label}
+              </a>
+            )}
+          </footer>
+        ) : null}
       </main>
     </div>
   );

@@ -1511,7 +1511,7 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
     preferredWorkflow: [
       "1) open_profile_designer — ChatGPT 안에 제작 위젯 (가능하면)",
       "2) list_templates → get_template(templateId)",
-      "3) create_page_from_template({ templateId:'fmgs-premium', ... })",
+      "3) create_page_from_template({ templateId:'fmgs-exact', ... }) 또는 fmgs-premium",
       "4) update_page_content / update_section / upsert_component",
       "5) upload_asset → brand.logoUrl / item.iconImageUrl 연결",
       "6) validate_page → save_draft 또는 publish_page",
@@ -1622,7 +1622,7 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
     },
     recipes: {
       fmgsPremium:
-        "create_page_from_template({ templateId:'fmgs-premium' }) → update_page_content(브랜드/헤드라인/URL) → upload_asset(로고/아이콘) → validate_page → publish_page",
+        "create_page_from_template({ templateId:'fmgs-exact' }) → update_page_content(브랜드/헤드라인/URL) → upload_asset(로고/아이콘) → validate_page → publish_page",
       openDesigner: "open_profile_designer({ step:'template' })",
       brandWordmarkAndHeadline:
         "upload_asset → update_page_content({ brand:{logoUrl}, sections hero }) 또는 레거시 update_design",

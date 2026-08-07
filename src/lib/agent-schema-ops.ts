@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { links, pages, type Page } from "@/db/schema";
 import { coerceIconKey } from "@/lib/link-icons";
@@ -130,9 +131,11 @@ export async function syncLinksFromSchema(page: Page, schema: PageSchema) {
       arrowStyle: (item.arrowStyle as "plain" | "circle") || "plain",
       subtitlePlacement:
         (item.subtitlePlacement as "body" | "trailing") || "body",
-      variant: "card",
+      variant: (item.variant as "card" | "full" | "spotlight") || "card",
       layout: "horizontal" as const,
       iconPlacement: "leading" as const,
+      cardMinHeight: item.cardMinHeight || (item.featured ? 0 : 140),
+      cardHeight: item.cardHeight || 0,
       updatedAt: new Date(),
     };
 
@@ -167,9 +170,13 @@ async function persistSchema(
   opts: { asDraft?: boolean; publish?: boolean; versionLabel?: string },
 ) {
   const design = applySchemaToDesign(page.design, schema, opts);
+  const tokens = (await import("@/lib/page-schema")).themeTokens(schema.theme);
   const pagePatch: Partial<typeof pages.$inferInsert> = {
     design,
     updatedAt: new Date(),
+    // Schema theme drives public data-theme / accent (not Fairway default)
+    theme: schema.theme.slice(0, 32),
+    accent: tokens.accent.slice(0, 32),
   };
   if (schema.brand?.displayName) {
     pagePatch.displayName = schema.brand.displayName.slice(0, 80);
@@ -180,6 +187,9 @@ async function persistSchema(
   }
   await getDb().update(pages).set(pagePatch).where(eq(pages.id, page.id));
   await syncLinksFromSchema(page, schema);
+  // Bust public page cache so schemaVersionId / design changes show immediately
+  revalidatePath(`/${page.handle}`);
+  revalidatePath("/admin");
 }
 
 export async function agentListTemplates(): Promise<AgentResult> {
