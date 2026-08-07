@@ -202,3 +202,7 @@
 - footer 기본값 일반화(fmgs-*만 FMGS footer, 그 외 OMO). mergePageContent themeTokens 병합.
 - MCP: update_page_content에 themeTokens 노출, capabilities에 customTemplateGuide(섹션 타입/예시 스키마).
 - 스모크: my-cafe(custom-warm) 커스텀 팔레트 schema 렌더, 부분 패치, fmgs-exact 회귀 OK. typecheck/build OK.
+
+[2026-08-07 15:18 KST]
+- PR #26 main 머지 (`4fd12f9`) → Production 배포 성공. MCP 0.8.3 라이브:
+  커스텀 템플릿(임의 templateId schema-first)·themeTokens 팔레트·designOptions 일반화·footer/canvas 편집.
