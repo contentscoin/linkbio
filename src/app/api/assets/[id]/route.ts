@@ -22,6 +22,14 @@ export async function GET(
       "Content-Type": asset.mimeType,
       "Content-Length": String(body.length),
       "Cache-Control": "public, max-age=31536000, immutable",
+      // SVG uploads are allowed, and navigating straight to an asset URL renders
+      // it as a document on our own origin — where inline <script> would run.
+      // `sandbox` (no allow-scripts) neutralizes that; browsers ignore CSP when
+      // the response is consumed as an <img> subresource, so raster assets are
+      // unaffected. nosniff stops a mislabeled asset being sniffed into HTML.
+      "Content-Security-Policy":
+        "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

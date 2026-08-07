@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { listSchemaTemplates, getSchemaTemplate } from "@/lib/schema-templates";
+import { isAllowedEmbedHostOrigin } from "@/lib/embed-origins";
 import type { PageSchema, SchemaSection } from "@/lib/page-schema";
 import { validatePageSchema } from "@/lib/page-schema";
 import styles from "./designer.module.css";
@@ -27,9 +28,40 @@ const THEMES = [
   { id: "corporate", label: "Corporate" },
 ];
 
-function postToHost(type: string, payload: Record<string, unknown>) {
+/**
+ * The embedding host's origin, or null when we are not framed by one we trust.
+ *
+ * `window.parent.origin` is unreadable cross-origin, so the framing host is
+ * identified by the referrer and checked against the embed allowlist. Anything
+ * unrecognized disables the bridge rather than falling back to a wildcard.
+ */
+function resolveHostOrigin(): string | null {
+  if (typeof window === "undefined") return null;
+  if (window.parent === window) return null;
+  let candidate: string;
+  try {
+    candidate = new URL(document.referrer).origin;
+  } catch {
+    return null;
+  }
+  return isAllowedEmbedHostOrigin(candidate, window.location.origin)
+    ? candidate
+    : null;
+}
+
+function postToHost(
+  type: string,
+  payload: Record<string, unknown>,
+  targetOrigin: string,
+) {
   if (typeof window === "undefined") return;
-  window.parent?.postMessage({ source: "bioomo-designer", type, payload }, "*");
+  if (window.parent === window) return;
+  // Never "*": the payload carries the page schema, and any framing document
+  // would receive it.
+  window.parent.postMessage(
+    { source: "bioomo-designer", type, payload },
+    targetOrigin,
+  );
 }
 
 async function callAgent(
@@ -48,9 +80,21 @@ async function callAgent(
     });
     return res.json();
   }
+  const hostOrigin = resolveHostOrigin();
+  if (!hostOrigin) {
+    return {
+      ok: false,
+      error:
+        "신뢰할 수 없는 임베드 환경입니다 — token으로 API를 호출하거나 지원되는 MCP Apps 호스트에서 여세요.",
+    };
+  }
   const id = `req_${Date.now()}`;
   return new Promise((resolve) => {
     const onMessage = (event: MessageEvent) => {
+      // `event.data.source` is attacker-controlled; the origin and the sender
+      // window are what actually establish who sent this.
+      if (event.origin !== hostOrigin) return;
+      if (event.source !== window.parent) return;
       if (!event.data || event.data.source !== "bioomo-host") return;
       if (event.data.type !== "toolResult" || event.data.id !== id) return;
       window.removeEventListener("message", onMessage);
@@ -61,7 +105,7 @@ async function callAgent(
       );
     };
     window.addEventListener("message", onMessage);
-    postToHost("callTool", { id, name: action, args: body });
+    postToHost("callTool", { id, name: action, args: body }, hostOrigin);
     setTimeout(() => {
       window.removeEventListener("message", onMessage);
       resolve({

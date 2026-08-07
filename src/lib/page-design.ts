@@ -650,14 +650,29 @@ export function sanitizeCustomCss(css: string): string | undefined {
       `customCss가 8000자를 초과합니다 (${trimmed.length}자). 줄이거나 네이티브 필드를 사용하세요.`,
     );
   }
+  // The HTML parser closes <style> on a literal `</style` regardless of CSS
+  // context, so any `<` is a tag-injection vector. `<` is never valid CSS
+  // outside strings/comments; `>` stays allowed (child combinator).
+  if (trimmed.includes("<")) {
+    throw new Error("customCss에 '<' 문자는 사용할 수 없습니다.");
+  }
   const blocked =
-    /@import|expression\s*\(|javascript:|behavior\s*:|@charset|<\/?script|url\s*\(\s*['"]?\s*javascript/i;
+    /@import|expression\s*\(|javascript:|behavior\s*:|@charset|url\s*\(\s*['"]?\s*javascript/i;
   if (blocked.test(trimmed)) {
     throw new Error(
       "customCss에 @import / javascript / expression 등은 사용할 수 없습니다.",
     );
   }
   return trimmed;
+}
+
+/**
+ * Defense in depth for the `<style dangerouslySetInnerHTML>` sink: even if a
+ * value predates or bypasses sanitizeCustomCss, `\3c` cannot terminate the
+ * element. The CSS parser decodes the escape back to `<` inside strings.
+ */
+export function escapeCssForStyleTag(css: string): string {
+  return css.replace(/</g, "\\3c ");
 }
 
 export function mergePageDesign(

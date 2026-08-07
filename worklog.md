@@ -226,3 +226,82 @@
 - 사용자 요청으로 /fmg 잔여 데이터 2건을 에이전트가 직접 처리(프로덕션 DB, 백업 후 앱 로직 재사용):
   hero.align=center, shortcuts의 variant:"footer" 아이템(home) 제거, top-level footer{FMGS 홈} 설정, 게시.
 - 라이브 검증: data-header=center, footer 카드 제거, bio-foot--fmgs "FMGS 홈", CTA 140/서비스 296/spotlight/전체폭 유지.
+
+[2026-08-07 21:40 KST]
+- 코드베이스 문제점 점검(전체 감사) 후 저장형 XSS 2건 수정.
+- (1) customCss `</style>` 브레이크아웃: sanitizeCustomCss 차단 목록이 `<script`만 막고
+  `</style>`를 막지 않아 `</style><img src=x onerror=...>` 가 통과 → `/{handle}` 공개 페이지의
+  `<style dangerouslySetInnerHTML>`(page.tsx:543)로 주입. 방문자 브라우저에서 bio.omo.co.kr
+  오리진 JS 실행 → 로그인 사용자 명의로 /settings MCP 토큰 발급까지 가능(테넌트 간 탈취).
+  수정: `<` 문자 자체를 거부(`>` 자식 결합자는 유지) + 렌더 시 `\3c` 이스케이프(2중 방어).
+- (2) SVG 자산: assets.ts가 image/svg+xml 허용, /api/assets/[id]가 자체 오리진에서 그대로 서빙
+  (nosniff·CSP 없음) → 자산 URL 직접 이동 시 내부 스크립트 실행.
+  수정: 응답에 `CSP: default-src 'none'; ... sandbox` + `X-Content-Type-Options: nosniff`.
+  <img> 서브리소스는 CSP 미적용이라 기존 렌더 영향 없음.
+- 검증: 브레이크아웃 페이로드 6종 전부 거부, 정상 CSS 4종·내장 템플릿 스니펫 2종 통과,
+  렌더 이스케이프 후 `</style` 미생성. typecheck/build OK.
+- 미수정(보고만): designer postMessage 오리진 미검증, MCP 토큰 URL 쿼리 전달,
+  로그인/가입 레이트리밋 부재, published||isPublished fail-open, links.pageId·mcpTokenHash 인덱스 부재,
+  ratelimit Map 미만료, drizzle 마이그레이션 디렉터리 부재.
+
+[2026-08-07 22:10 KST]
+- 점검 보고서 3번·5번 수정 (PR #28에 추가).
+- (3) /designer postMessage 브리지: 리스너가 event.origin을 검증하지 않고 위조 가능한
+  event.data.source만 확인, 송신은 targetOrigin "*". next.config.ts가 chatgpt.com·claude.ai·
+  *.oaiusercontent.com 프레이밍을 허용하므로 프레임 부모가 toolResult를 위조해 save_draft/
+  publish_page를 조종할 수 있었고, "*" 송신은 페이지 스키마를 아무 부모에게나 노출.
+  수정: src/lib/embed-origins.ts 신설(허용 오리진 단일 소스) → next.config.ts의 frame-ancestors와
+  클라이언트 검증이 같은 목록을 사용. 리스너는 event.origin + event.source===window.parent 확인,
+  송신은 referrer에서 유도해 허용 목록으로 검증한 오리진으로만. 미확인 호스트면 브리지 비활성화
+  (와일드카드 폴백 없음) — token 경로는 그대로 동작.
+- (5) 로그인/가입 레이트리밋: MCP 엔드포인트에만 있었음. bcrypt cost 12라 무차별 대입 + CPU 고갈 노출.
+  수정: authenticateWithPassword에 IP 10회/5분 + 이메일 5회/15분 게이트(라우트·서버액션 양쪽 커버),
+  signupAction에 IP 5회/1시간. 둘 다 bcrypt 이전에 차단.
+- 함께 수정(8번): ratelimit Map이 만료 버킷을 제거하지 않아 고유 키마다 무한 증가 →
+  MAX_BUCKETS 20k + 만료 제거 + 오래된 것부터 축출. 60k 고유 키 살포 시 5,085 / 20,000으로 유계 확인
+  (수정 전이면 60,000).
+- 검증: 오리진 매처 20케이스(evil.com·claude.ai.evil.com·http·대문자 등 거부),
+  레이트리밋 유닛 10케이스, 실서버 로그인 스로틀(이메일 6회차·IP 11회차 차단, 타 IP 무영향),
+  Playwright로 가입 위저드 실제 구동 → 6회차부터 차단 확인. /designer CSP 헤더는 리팩터 전후 동일.
+  typecheck/build OK.
+- 미수정(보고만): MCP 토큰 URL 쿼리 전달, published||isPublished fail-open,
+  links.pageId·mcpTokenHash 인덱스 부재, drizzle 마이그레이션 디렉터리 부재,
+  스키마 모드 렌더러 URL 검증 우회, 가입 TOCTOU, syncLinksFromSchema N+1.
+
+[2026-08-07 22:45 KST]
+- 점검 보고서 7번(인덱스 부재) 수정.
+- links: WHERE page_id ORDER BY sort_order, created_at 가 매 공개 페이지 렌더마다 전체 스캔.
+  pages: findPageByMcpToken 이 매 MCP 요청마다 전체 스캔.
+  → links_page_id_sort_idx (page_id, sort_order, created_at), pages_mcp_token_hash_idx (mcp_token_hash).
+- assets_page_id_idx: scripts/migrate-link-icons.mjs:54가 이미 DB에 만들고 있었지만 schema.ts에
+  선언이 없던 드리프트 → 같은 이름으로 선언만 추가(프로덕션 무변경). pages ON DELETE CASCADE 뒷받침.
+- drizzle/ 마이그레이션 디렉터리가 없으므로 scripts/add-indexes.mjs 로 적용
+  (migrate-link-icons.mjs와 같은 관례, IF NOT EXISTS 멱등, 마지막에 3개 생성 확인).
+  DATABASE_URL=... node scripts/add-indexes.mjs
+- 검증: 로컬 PG16에 pages 5,000 / links 60,000 / assets 5,000 심고 EXPLAIN ANALYZE 전후 비교.
+  before: links = Seq Scan, Rows Removed by Filter 59,988 / pages = Seq Scan, Rows Removed 5,000.
+  after: links = Bitmap Index Scan (Heap Blocks 12) / pages = Index Scan.
+  enable_bitmapscan=off 로 인덱스가 ORDER BY도 만족할 수 있음 확인(Sort 노드 사라짐).
+  현재 행 수에서는 플래너가 bitmap+small sort를 선호 — 코드 주석도 그 사실대로 수정.
+  스크립트 재실행 시 3건 모두 skip(멱등). typecheck/build OK.
+- 주의: 프로덕션 적용은 db:push 가 아니라 위 스크립트 권장(db:push는 스키마 드리프트 시 파괴적일 수 있음).
+
+[2026-08-07 23:20 KST] — 무효. 아래 [2026-08-08 00:05 KST] 항목으로 대체됨.
+  (잘못된 데이터베이스를 관찰하고 작성한 기록이므로 내용 삭제)
+
+[2026-08-08 00:05 KST]
+- add-indexes.mjs 를 실행했으나 전달받은 DATABASE_URL 이 이 프로젝트가 아닌 다른 프로젝트의
+  프로덕션이었음. linkbio 프로덕션에는 아직 아무것도 적용되지 않았음.
+- 그 DB에 남은 순변경: links_page_id_sort_idx 1건 생성.
+  (pages_mcp_token_hash_idx 는 생성 후 DROP 하여 순변경 없음, assets_page_id_idx 는 기존 존재로 no-op)
+- 앞서 그 DB를 근거로 기록한 결론들은 전부 철회:
+  * "프로덕션이 저장소와 갈라져 있다" — 무효. rate_limits/social_channels 는 다른 프로젝트 테이블이었음.
+  * "프로덕션에 이미 DB 기반 로그인 레이트리밋이 있다" — 무효. 보고서 5번(로그인 레이트리밋 없음)은
+    저장소 기준 그대로 유효하고, PR #28 의 인메모리 리미터가 중복이라는 우려도 근거 없음.
+  * "pages_mcp_token_hash_unique 가 이미 존재" / "pages 7행 links 27행" — 다른 DB 수치.
+    linkbio 프로덕션의 인덱스 상태와 데이터 규모는 여전히 미확인.
+- schema.ts / add-indexes.mjs 의 "already present in production" 류 주석을 미확인 표현으로 정정.
+  uniqueIndex(pages_mcp_token_hash_unique) 선언 자체는 유지 — 잘못된 DB 관찰과 무관하게
+  findPageByMcpToken 의 .limit(1) 모호성을 막는 올바른 불변식이기 때문.
+- 교훈: 자격증명을 받으면 쓰기 전에 대상 DB가 맞는지 먼저 확인할 것
+  (예: 예상 테이블 집합·핸들 샘플 대조). 이번엔 그 확인 없이 DDL을 실행했음.
