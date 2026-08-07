@@ -17,6 +17,10 @@ export type SchemaLinkItem = {
   badge?: string;
   span?: 1 | 2 | 3;
   mobileSpan?: 1 | 2 | 3;
+  /** card | full | spotlight */
+  variant?: "card" | "full" | "spotlight";
+  cardMinHeight?: number;
+  cardHeight?: number;
 };
 
 export type SchemaCta = {
@@ -25,6 +29,7 @@ export type SchemaCta = {
   secondaryText?: string;
   trailingText?: string;
   leadingIconUrl?: string;
+  iconKey?: string;
   subtitlePlacement?: "body" | "trailing";
   showDivider?: boolean;
   showArrow?: boolean;
@@ -43,6 +48,8 @@ export type SchemaSection =
       stats?: SchemaProofItem[];
       heroGraphic?: "none" | "golf";
       heroImageUrl?: string;
+      /** Alias of heroImageUrl */
+      heroGraphicUrl?: string;
     }
   | {
       type: "serviceGrid";
@@ -62,6 +69,8 @@ export type SchemaSection =
       type: "shortcuts";
       id?: string;
       title?: string;
+      columns?: 1 | 2 | 3;
+      mobileColumns?: 1 | 2 | 3;
       items: SchemaLinkItem[];
     }
   | {
@@ -69,6 +78,13 @@ export type SchemaSection =
       id?: string;
       title?: string;
       items: SchemaLinkItem[];
+    }
+  | {
+      type: "footer";
+      id?: string;
+      label?: string;
+      url?: string;
+      style?: "fmgs" | "omo" | "none";
     };
 
 export type SchemaDesignOptions = {
@@ -90,6 +106,8 @@ export type PageSchema = {
   templateId: string;
   theme: string;
   contentWidth: SchemaContentWidth;
+  /** Optional artboard hint (e.g. FMGS exact 853×1844) */
+  canvas?: { width: number; height: number };
   brand?: {
     logoUrl?: string;
     displayName?: string;
@@ -98,6 +116,11 @@ export type PageSchema = {
   };
   sections: SchemaSection[];
   designOptions?: SchemaDesignOptions;
+  footer?: {
+    label?: string;
+    url?: string;
+    style?: "fmgs" | "omo" | "none";
+  };
 };
 
 export type PageValidationIssue = {
@@ -177,12 +200,20 @@ export function parsePageSchema(raw: unknown): PageSchema | null {
       data.brand && typeof data.brand === "object" && !Array.isArray(data.brand)
         ? (data.brand as PageSchema["brand"])
         : undefined,
+    canvas:
+      data.canvas && typeof data.canvas === "object" && !Array.isArray(data.canvas)
+        ? (data.canvas as PageSchema["canvas"])
+        : undefined,
     sections: data.sections as SchemaSection[],
     designOptions:
       data.designOptions &&
       typeof data.designOptions === "object" &&
       !Array.isArray(data.designOptions)
         ? (data.designOptions as SchemaDesignOptions)
+        : undefined,
+    footer:
+      data.footer && typeof data.footer === "object" && !Array.isArray(data.footer)
+        ? (data.footer as PageSchema["footer"])
         : undefined,
   };
 }
@@ -317,7 +348,11 @@ export function schemaToDesignPatch(schema: PageSchema): Record<string, unknown>
   const heroGraphic =
     hero && hero.type === "hero" ? hero.heroGraphic : undefined;
   const heroImageUrl =
-    hero && hero.type === "hero" ? hero.heroImageUrl : undefined;
+    hero && hero.type === "hero"
+      ? hero.heroImageUrl || hero.heroGraphicUrl
+      : undefined;
+
+  const isFmgs = schema.templateId.startsWith("fmgs-");
 
   const designSections = schema.sections
     .filter(
@@ -349,6 +384,18 @@ export function schemaToDesignPatch(schema: PageSchema): Record<string, unknown>
           items: s.items.map((it) => it.id),
         };
       }
+      if (s.type === "shortcuts") {
+        const columns = (s.columns ?? 1) as 1 | 2 | 3;
+        const mobileColumns = (s.mobileColumns ?? 1) as 1 | 2 | 3;
+        return {
+          id: s.id || "shortcuts",
+          title: s.title,
+          columns,
+          mobileColumns,
+          order,
+          items: s.items.map((it) => it.id),
+        };
+      }
       return {
         id: s.id || s.type,
         title: s.title,
@@ -363,16 +410,23 @@ export function schemaToDesignPatch(schema: PageSchema): Record<string, unknown>
     pageSchema: schema,
     templateId: schema.templateId,
     contentMaxWidth: contentWidthToPx(schema.contentWidth),
+    layout: isFmgs ? "bento" : undefined,
     accent: tokens.accent,
     featuredFill: tokens.featuredFill,
     featuredText: tokens.featuredText,
     tokens: {
-      pageBackground: tokens.pageBg,
+      pageBackground: tokens.pageBg || undefined,
+      cardBackground: isFmgs ? "#132a42" : undefined,
+      cardText: isFmgs ? "#f2f6fb" : undefined,
+      mutedText: isFmgs ? "#9fb0c3" : undefined,
+      borderColor: isFmgs ? "#1e3a55" : undefined,
       featuredBackground: tokens.featuredFill,
       featuredText: tokens.featuredText,
     },
     logoImageUrl: schema.brand?.logoUrl,
     logoUrl: schema.brand?.logoUrl,
+    logoWidth: isFmgs ? 140 : undefined,
+    logoHeight: isFmgs ? 40 : undefined,
     showHandle: schema.brand?.showHandle === true,
     showAvatar: schema.brand?.showAvatar === true,
     headline,
@@ -381,17 +435,21 @@ export function schemaToDesignPatch(schema: PageSchema): Record<string, unknown>
     heroGraphic: heroGraphic || (heroImageUrl ? undefined : "none"),
     heroGraphicUrl: heroImageUrl,
     heroImageUrl,
+    heroGraphicSize: isFmgs ? 96 : undefined,
+    heroGraphicPosition: isFmgs ? "right" : undefined,
+    headerAlign: isFmgs ? "left" : undefined,
+    headlineFontSize: isFmgs ? 28 : opts.desktopFontSize,
+    headlineMobileFontSize: isFmgs ? 22 : opts.mobileFontSize,
     sections: designSections,
-    font: opts.font,
-    radius: opts.radius,
-    buttonStyle: opts.buttonStyle,
+    font: opts.font || (isFmgs ? "sans" : undefined),
+    radius: opts.radius || (isFmgs ? "round" : undefined),
+    buttonStyle: opts.buttonStyle || (isFmgs ? "elevated" : undefined),
     effect: opts.effect,
     backgroundImageUrl: opts.backgroundImageUrl,
-    desktopFontSize: opts.desktopFontSize,
-    mobileFontSize: opts.mobileFontSize,
-    lineHeight: opts.lineHeight,
-    letterSpacing: opts.letterSpacing,
-    // Explicitly discourage freeform CSS for schema pages
+    desktopFontSize: opts.desktopFontSize ?? (isFmgs ? 15 : undefined),
+    mobileFontSize: opts.mobileFontSize ?? (isFmgs ? 14 : undefined),
+    lineHeight: opts.lineHeight ?? (isFmgs ? 1.45 : undefined),
+    letterSpacing: opts.letterSpacing ?? (isFmgs ? "-0.02em" : undefined),
     customCss: undefined,
   };
 }
@@ -415,6 +473,9 @@ export function flattenSchemaLinks(schema: PageSchema): Array<{
   showDivider?: boolean;
   showArrow?: boolean;
   arrowStyle?: string;
+  variant?: string;
+  cardMinHeight?: number;
+  cardHeight?: number;
 }> {
   const out: ReturnType<typeof flattenSchemaLinks> = [];
   for (const section of schema.sections) {
@@ -428,12 +489,14 @@ export function flattenSchemaLinks(schema: PageSchema): Array<{
         span: 2,
         mobileSpan: 2,
         leadingIconUrl: section.item.leadingIconUrl,
+        iconKey: section.item.iconKey,
         secondaryText: section.item.secondaryText,
         trailingText: section.item.trailingText,
         subtitlePlacement: section.item.subtitlePlacement || "trailing",
         showDivider: section.item.showDivider !== false,
         showArrow: section.item.showArrow !== false,
         arrowStyle: section.item.arrowStyle || "circle",
+        variant: "full",
       });
     } else if (
       section.type === "serviceGrid" ||
@@ -447,23 +510,41 @@ export function flattenSchemaLinks(schema: PageSchema): Array<{
           : section.type === "shortcuts"
             ? "shortcuts"
             : "social");
+      const isShortcuts = section.type === "shortcuts";
       for (const item of section.items) {
+        const defaultFull =
+          isShortcuts && (item.variant === "full" || !item.variant);
         out.push({
           key: item.id,
           label: item.label,
           url: item.url,
           sublabel: item.sublabel,
           section: sectionId,
-          span: item.span || 1,
-          mobileSpan: item.mobileSpan || 1,
+          span: item.span || (defaultFull ? 2 : 1),
+          mobileSpan: item.mobileSpan || item.span || (defaultFull ? 2 : 1),
           iconImageUrl: item.iconImageUrl,
           iconKey: item.iconKey,
           badge: item.badge,
           showArrow: true,
           arrowStyle: section.type === "serviceGrid" ? "circle" : "plain",
+          variant: item.variant || (isShortcuts ? "full" : "card"),
+          cardMinHeight: item.cardMinHeight,
+          cardHeight: item.cardHeight,
         });
       }
     }
   }
   return out;
+}
+
+/** True when public page should render from pageSchema only (no Fairway legacy mix). */
+export function isSchemaDrivenTemplate(templateId: string | undefined | null) {
+  if (!templateId) return false;
+  return (
+    templateId.startsWith("fmgs-") ||
+    templateId === "corporate-grid" ||
+    templateId === "product-launch" ||
+    templateId === "portfolio" ||
+    templateId === "photo-hero"
+  );
 }
