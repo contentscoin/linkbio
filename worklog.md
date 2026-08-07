@@ -164,3 +164,9 @@
 - settings MCP 가이드를 Page Schema 중심으로 갱신, ChatGPT는 ?token= URL 권장.
 - list_design_capabilities / profile_creation_helper에서 set_custom_css 비권장.
 - HTTP/stdio MCP 0.8.1.
+
+[2026-08-07 11:45 KST]
+- ERR_BLOCKED_BY_CSP 수정: ChatGPT 위젯이 bio.omo.co.kr를 중첩 iframe으로 넣어
+  샌드박스 CSP에 막히던 문제. self-contained 위젯 + _meta.ui.csp /
+  openai/widgetCSP(frame/connect/resource/redirect domains) 선언.
+- /designer frame-ancestors에 chatgpt.com 등 허용. MCP 0.8.2.

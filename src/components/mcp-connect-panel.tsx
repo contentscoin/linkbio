@@ -167,7 +167,9 @@ export function McpConnectPanel({
       <div className="notice notice--ok" style={{ marginBottom: 16 }}>
         MCP URL은 반드시 <strong>https://bio.omo.co.kr/api/mcp</strong> 를
         사용하세요. <code>*.vercel.app</code> 주소는 브라우저/보안 필터에
-        차단될 수 있습니다 (ERR_BLOCKED_BY_CS).
+        차단될 수 있습니다.
+        ChatGPT 위젯에서 <code>ERR_BLOCKED_BY_CSP</code> 가 보이면 MCP를
+        재연결하세요(0.8.2+, 중첩 iframe 없이 도구 호출).
       </div>
 
       {looksLikeVercel ? (

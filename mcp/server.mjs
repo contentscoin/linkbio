@@ -622,7 +622,7 @@ const postActions = new Set([
 ]);
 
 const server = new Server(
-  { name: "omo-bio", version: "0.8.1" },
+  { name: "omo-bio", version: "0.8.2" },
   { capabilities: { tools: {} } },
 );
 

@@ -4,6 +4,7 @@ import type { McpAuthResult } from "@/lib/mcp-auth";
 import { runAgentAction, type AgentResult } from "@/lib/agent-ops";
 import {
   PROFILE_DESIGNER_URI,
+  profileDesignerResourceMeta,
   profileDesignerWidgetHtml,
 } from "@/lib/designer-widget";
 
@@ -38,7 +39,7 @@ export function createOmoBioMcpServer(
 ) {
   const server = new McpServer({
     name: "omo-bio",
-    version: "0.8.1",
+    version: "0.8.2",
   });
 
   const defaultHandle =
@@ -63,9 +64,7 @@ export function createOmoBioMcpServer(
             handle: auth.scope === "page" ? auth.handle : "",
             step: "guide",
           }),
-          _meta: {
-            ui: { prefersBorder: true },
-          },
+          _meta: profileDesignerResourceMeta(),
         },
       ],
     }),
