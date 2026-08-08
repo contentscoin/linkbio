@@ -550,6 +550,42 @@ export function createOmoBioMcpServer(
           .max(960)
           .optional()
           .describe("콘텐츠 폭 px. 예: 765"),
+        heroPaddingTop: z
+          .number()
+          .min(0)
+          .max(240)
+          .optional()
+          .describe("히어로(헤더) 상단 여백 px. 기본 46"),
+        proofWidth: z
+          .number()
+          .min(160)
+          .max(960)
+          .optional()
+          .describe("통계 바 최대 폭 px. 기본 420 — 시안형 넓은 바는 contentMaxWidth와 동일하게"),
+        sectionGap: z
+          .number()
+          .min(0)
+          .max(120)
+          .optional()
+          .describe("섹션 사이 세로 간격 px. 기본 30 (sections[].gap은 카드 사이 간격)"),
+        canvasWidth: z
+          .number()
+          .min(320)
+          .max(1600)
+          .optional()
+          .describe("아트보드 폭 px. 예: 853"),
+        canvasHeight: z
+          .number()
+          .min(320)
+          .max(4000)
+          .optional()
+          .describe("아트보드 높이 px. 예: 1844"),
+        canvasFit: z
+          .enum(["fluid", "fixed"])
+          .optional()
+          .describe(
+            "fixed면 아트보드 비율 고정 — 화면이 canvasWidth보다 좁으면 캔버스 전체를 축소해 시안 비율 유지",
+          ),
         headline: z.string().nullable().optional(),
         headlineHighlight: z
           .string()
@@ -575,7 +611,12 @@ export function createOmoBioMcpServer(
           .nullable()
           .optional()
           .describe("heroGraphicUrl 별칭"),
-        heroGraphicSize: z.number().min(24).max(240).optional(),
+        heroGraphicSize: z
+          .number()
+          .min(24)
+          .max(480)
+          .optional()
+          .describe("히어로 그래픽 폭 px (기본 88, 모바일 72)"),
         heroGraphicPosition: z
           .enum(["right", "left", "below", "above"])
           .optional(),
@@ -822,7 +863,7 @@ export function createOmoBioMcpServer(
           .record(z.string(), z.unknown())
           .optional()
           .describe(
-            "layout(stack|bento|list)·headerAlign·logo/headline 크기·hero 위치·폰트 등",
+            "layout(stack|bento|list)·headerAlign·logo/headline 크기·hero 위치·폰트 + 여백/아트보드: heroPaddingTop(0~240)·proofWidth(160~960)·sectionGap(0~120)·heroGraphicSize(24~480)·canvasWidth/canvasHeight·canvasFit(fluid|fixed)",
           ),
         themeTokens: z
           .record(z.string(), z.unknown())
@@ -835,7 +876,9 @@ export function createOmoBioMcpServer(
           .record(z.string(), z.unknown())
           .nullable()
           .optional()
-          .describe("아트보드 힌트 { width, height } — fmgs-exact: 853×1844"),
+          .describe(
+            "아트보드 { width, height } — fmgs-exact: 853×1844. designOptions.canvasFit:'fixed'와 함께 쓰면 비율 고정 렌더",
+          ),
         footer: z
           .record(z.string(), z.unknown())
           .nullable()
