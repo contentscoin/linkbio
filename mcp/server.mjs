@@ -309,6 +309,27 @@ const tools = [
         logoHeight: { type: "number" },
         logoAlign: { type: "string" },
         contentMaxWidth: { type: "number", description: "예: 765" },
+        heroPaddingTop: {
+          type: "number",
+          description: "히어로 상단 여백 px 0~240 (기본 46)",
+        },
+        proofWidth: {
+          type: "number",
+          description: "통계 바 최대 폭 px 160~960 (기본 420)",
+        },
+        sectionGap: {
+          type: "number",
+          description: "섹션 간 세로 간격 px 0~120 (기본 30)",
+        },
+        canvasWidth: { type: "number", description: "아트보드 폭 px (예: 853)" },
+        canvasHeight: {
+          type: "number",
+          description: "아트보드 높이 px (예: 1844)",
+        },
+        canvasFit: {
+          type: "string",
+          description: "fluid|fixed — fixed면 아트보드 비율 고정 렌더",
+        },
         headline: { type: "string" },
         headlineHighlight: { type: "string" },
         headlineSegments: {
@@ -470,7 +491,12 @@ const tools = [
         contentWidth: {},
         brand: { type: "object", additionalProperties: true },
         sections: { type: "array" },
-        designOptions: { type: "object", additionalProperties: true },
+        designOptions: {
+          type: "object",
+          additionalProperties: true,
+          description:
+            "layout·headerAlign·폰트/로고/헤드라인 크기 + 여백·아트보드: heroPaddingTop, proofWidth, sectionGap, heroGraphicSize(24~480), canvasWidth/canvasHeight, canvasFit(fluid|fixed)",
+        },
         themeTokens: {
           type: "object",
           additionalProperties: true,
@@ -480,7 +506,8 @@ const tools = [
         canvas: {
           type: "object",
           additionalProperties: true,
-          description: "아트보드 힌트 { width, height } — fmgs-exact: 853×1844",
+          description:
+            "아트보드 { width, height } — fmgs-exact: 853×1844. designOptions.canvasFit:'fixed'와 함께 쓰면 비율 고정 렌더",
         },
         footer: {
           type: "object",

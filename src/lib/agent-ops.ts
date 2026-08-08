@@ -1264,9 +1264,25 @@ export async function agentUpdateDesign(
     Number.isFinite(body.heroGraphicSize)
   ) {
     patch.heroGraphicSize = Math.min(
-      240,
+      480,
       Math.max(24, Math.floor(body.heroGraphicSize)),
     );
+  }
+  // Spacing / artboard controls — parsePageDesign clamps these again.
+  for (const key of [
+    "heroPaddingTop",
+    "proofWidth",
+    "sectionGap",
+    "canvasWidth",
+    "canvasHeight",
+  ] as const) {
+    const value = body[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      patch[key] = Math.floor(value);
+    }
+  }
+  if (body.canvasFit === "fixed" || body.canvasFit === "fluid") {
+    patch.canvasFit = body.canvasFit;
   }
   if (typeof body.heroGraphicPosition === "string") {
     patch.heroGraphicPosition =
@@ -1531,7 +1547,9 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       themeTokens:
         "theme 프리셋(navy-lime|fairway|noir|corporate) 위에 themeTokens로 색만 교체하거나, 임의 theme 이름 + 전체 팔레트 지정",
       designOptions:
-        "layout(stack|bento|list), headerAlign, logoWidth/Height, headlineFontSize, heroGraphicSize/Position, font, radius, buttonStyle, 폰트 크기/행간/자간",
+        "layout(stack|bento|list), headerAlign, logoWidth/Height, headlineFontSize, heroGraphicSize(24~480)/Position, heroPaddingTop, proofWidth, sectionGap, canvasWidth/canvasHeight/canvasFit, font, radius, buttonStyle, 폰트 크기/행간/자간",
+      spacingAndCanvas:
+        "heroPaddingTop(0~240) 히어로 상단 여백 · proofWidth(160~960) 통계 바 최대 폭(기본 420) · sectionGap(0~120) 섹션 간 세로 간격(기본 30) · heroGraphicSize(24~480) 히어로 그래픽 폭 · canvasFit:'fixed' + canvas{width,height} 이면 아트보드 비율 고정(좁은 화면에서 캔버스 전체 축소 → 시안 비율 그대로)",
       example: {
         version: 1,
         templateId: "my-cafe",
@@ -1610,6 +1628,13 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       brandLogoUrl: "logoUrl 별칭",
       logoImageUrl: "logoUrl 별칭",
       contentMaxWidth: "콘텐츠 폭 px (FMGS: 765) — 스키마 contentWidth",
+      heroPaddingTop: "히어로 상단 여백 px 0~240 (기본 46)",
+      proofWidth: "통계 바 최대 폭 px 160~960 (기본 420 — 시안형 넓은 바는 contentWidth와 동일하게)",
+      sectionGap: "섹션 간 세로 간격 px 0~120 (기본 30)",
+      heroGraphicSize: "히어로 그래픽 폭 px 24~480 (기본 88, 모바일 72)",
+      canvasWidth: "아트보드 폭 px 320~1600 (스키마 canvas.width)",
+      canvasHeight: "아트보드 높이 px 320~4000 (스키마 canvas.height)",
+      canvasFit: "fluid(기본) | fixed — fixed면 아트보드 비율 고정 렌더",
       headline: "헤드라인 — 스키마 hero.headline",
       headlineSegments: "[{ text, accent?, breakAfter? }]",
       showHandle: "boolean",
@@ -1638,7 +1663,8 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
       cardHeight: "카드 고정 높이 px",
     },
     schemaFields: {
-      canvas: "{ width, height } 아트보드 힌트 — fmgs-exact: 853×1844",
+      canvas:
+        "{ width, height } 아트보드 — fmgs-exact: 853×1844. designOptions.canvasFit:'fixed'와 함께 쓰면 비율 고정 렌더",
       footer: "{ label, url, style: fmgs|omo|none } — FMGS 전용 footer",
       "brand.logoUrl": "로고 이미지 https — upload_asset 후 연결",
       "hero.heroGraphicUrl": "커스텀 hero 그래픽 https (heroImageUrl 별칭)",
@@ -1695,6 +1721,12 @@ export async function agentListDesignCapabilities(): Promise<AgentResult> {
         "update_page_content({ footer:{ label:'FMGS 홈', url:'https://fmgs.co.kr', style:'fmgs' } })",
       customHeroGraphic:
         "upload_asset → update_section({ sectionId:'hero', patch:{ heroGraphicUrl } })",
+      wideProofBar:
+        "update_page_content({ designOptions:{ proofWidth: 765 } }) — 통계 바를 콘텐츠 폭까지 확장 (기본 420)",
+      heroSpacing:
+        "update_page_content({ designOptions:{ heroPaddingTop: 72, sectionGap: 40, heroGraphicSize: 200 } }) — 히어로 상단 여백·섹션 간격·그래픽 크기",
+      canvasFidelity:
+        "update_page_content({ canvas:{ width:853, height:1844 }, designOptions:{ canvasFit:'fixed' } }) — 시안 853×1844 비율 고정. 아트보드 기준(853px)으로 폰트·여백을 잡으면 모바일에서 같은 비율로 축소 렌더",
     },
     icons: [...LINK_ICON_KEYS],
     publicOrigin: "https://bio.omo.co.kr",

@@ -226,3 +226,24 @@
 - 사용자 요청으로 /fmg 잔여 데이터 2건을 에이전트가 직접 처리(프로덕션 DB, 백업 후 앱 로직 재사용):
   hero.align=center, shortcuts의 variant:"footer" 아이템(home) 제거, top-level footer{FMGS 홈} 설정, 게시.
 - 라이브 검증: data-header=center, footer 카드 제거, bio-foot--fmgs "FMGS 홈", CTA 140/서비스 296/spotlight/전체폭 유지.
+
+[2026-08-08 23:05 KST]
+- 사용자 피드백: fmgs-premium 시안 반영이 반복 실패 — 값을 넣어도 렌더러가 무시하는 항목이 원인.
+- 미지원 6종을 렌더러 템플릿 기능으로 추가(designOptions/update_design 공통):
+  heroPaddingTop(0~240, 기본 46) → --hero-pad-top,
+  proofWidth(160~960, 기본 420) → --proof-w (통계 바 420px 고정 해제),
+  sectionGap(0~120, 기본 30) → --section-stack-gap (.bio-section+.bio-section),
+  heroGraphicSize 실제 반영 — .bio-hero-graphic 88×66 / 모바일 72×54 하드코딩을
+  --hero-graphic-w/h 로 전환하고 상한 240→480 확대(200px 지정 시 200×150 렌더),
+  canvasWidth/canvasHeight(= schema canvas) + canvasFit:'fluid'|'fixed'.
+- canvasFit:'fixed' = 모바일 고정 비율 렌더: .bio-canvas 래퍼(기본 display:contents)를
+  아트보드 폭으로 잡고 zoom:min(1,100vw/canvasWidth) 로 캔버스 전체 축소 → 853×1844 비율 유지.
+  @supports (zoom: calc(100vw / 853px)) 가드 — 미지원 엔진은 기존 반응형 렌더 그대로.
+  잠긴 캔버스 안에서는 480px 미디어쿼리(1열 hero, 폰트 축소, mobileColumns)를 되돌려
+  아트보드 레이아웃이 이기도록 재선언(미디어쿼리는 축소 전 실제 뷰포트를 보기 때문).
+- MCP 노출: update_design(zod/stdio) 신규 필드, update_page_content designOptions/canvas 설명,
+  list_design_capabilities designFields·spacingAndCanvas·recipes(wideProofBar/heroSpacing/canvasFidelity),
+  validate_page 에 canvas_missing 워닝(canvasFit:'fixed'인데 canvas 미지정).
+- 스모크(headless chromium 390×844, 실제 globals.css): fixed 캔버스 zoom 0.457·390×843(853:1844 유지)·
+  가로 스크롤 없음·padTop 72·proof 765·그래픽 200×150·섹션 간격 44·서비스 2열 유지.
+  기본(fluid) 경로 회귀: display:contents·46/420/72×54/30·모바일 2열 그대로. typecheck/build OK.

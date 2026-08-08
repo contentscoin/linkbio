@@ -458,6 +458,28 @@ export default async function PublicPage({
   if (attrs.headlineMobileFontSize) {
     stageStyle["--headline-size-mobile"] = `${attrs.headlineMobileFontSize}px`;
   }
+  if (typeof attrs.heroPaddingTop === "number") {
+    stageStyle["--hero-pad-top"] = `${attrs.heroPaddingTop}px`;
+  }
+  if (attrs.proofWidth) stageStyle["--proof-w"] = `${attrs.proofWidth}px`;
+  if (typeof attrs.sectionGap === "number") {
+    stageStyle["--section-stack-gap"] = `${attrs.sectionGap}px`;
+  }
+  if (attrs.heroGraphicSize) {
+    stageStyle["--hero-graphic-w"] = `${attrs.heroGraphicSize}px`;
+    // Built-in artwork is a 120×90 (4:3) viewBox; images keep height:auto.
+    stageStyle["--hero-graphic-h"] = `${Math.round(attrs.heroGraphicSize * 0.75)}px`;
+  }
+  // Fixed-ratio artboard needs a width to scale against; height is optional.
+  const canvasWidth = attrs.canvasWidth || attrs.contentMaxWidth;
+  const canvasFit =
+    attrs.canvasFit === "fixed" && canvasWidth ? "fixed" : undefined;
+  if (canvasFit) {
+    stageStyle["--canvas-w"] = `${canvasWidth}px`;
+    if (attrs.canvasHeight) {
+      stageStyle["--canvas-h"] = `${attrs.canvasHeight}px`;
+    }
+  }
 
   const sectionViews = groupLinksBySections(renderLinks, attrs.sections);
   const hasTokens = Boolean(
@@ -509,6 +531,7 @@ export default async function PublicPage({
       data-featured-style={attrs.featuredFill ? "custom" : undefined}
       data-tokens={hasTokens ? "1" : undefined}
       data-header={attrs.headerAlign}
+      data-canvas-fit={canvasFit}
       data-content-max={attrs.contentMaxWidth ? String(attrs.contentMaxWidth) : undefined}
       style={stageStyle}
     >
@@ -544,6 +567,8 @@ export default async function PublicPage({
         />
       ) : null}
 
+      {/* Pass-through (display:contents) unless the canvas ratio is locked. */}
+      <div className="bio-canvas" data-role="canvas" data-canvas-fit={canvasFit}>
       <main
         className="bio"
         data-role="page-content"
@@ -745,6 +770,7 @@ export default async function PublicPage({
           </footer>
         ) : null}
       </main>
+      </div>
     </div>
   );
 }

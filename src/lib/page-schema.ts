@@ -110,8 +110,25 @@ export type SchemaDesignOptions = {
   logoHeight?: number;
   headlineFontSize?: number;
   headlineMobileFontSize?: number;
+  /** Hero graphic width in px (24–480). Height follows the 4:3 artwork ratio. */
   heroGraphicSize?: number;
   heroGraphicPosition?: "right" | "left" | "above" | "below";
+  /** Header(hero) top padding in px — renderer default 46 */
+  heroPaddingTop?: number;
+  /** Proof/stats bar max width in px — renderer default 420 */
+  proofWidth?: number;
+  /** Vertical gap between sections in px — renderer default 30 */
+  sectionGap?: number;
+  /** Artboard width in px — falls back to canvas.width */
+  canvasWidth?: number;
+  /** Artboard height in px — falls back to canvas.height */
+  canvasHeight?: number;
+  /**
+   * fluid(default) — responsive rendering.
+   * fixed — keep the canvas ratio: screens narrower than canvasWidth scale the
+   * whole artboard down, so a 853×1844 시안 renders at the same proportions.
+   */
+  canvasFit?: "fluid" | "fixed";
 };
 
 /** Custom palette — overrides theme preset token by token. */
@@ -391,6 +408,21 @@ export function validatePageSchema(schema: PageSchema): PageValidationIssue[] {
     }
   }
 
+  const opts = schema.designOptions || {};
+  if (
+    opts.canvasFit === "fixed" &&
+    !(opts.canvasWidth || schema.canvas?.width) &&
+    !(opts.canvasHeight || schema.canvas?.height)
+  ) {
+    issues.push({
+      level: "warn",
+      code: "canvas_missing",
+      message:
+        "canvasFit:'fixed'에는 canvas { width, height }(또는 designOptions.canvasWidth/Height)가 필요합니다.",
+      path: "designOptions",
+    });
+  }
+
   if (!hasCta) {
     issues.push({
       level: "info",
@@ -509,6 +541,12 @@ export function schemaToDesignPatch(schema: PageSchema): Record<string, unknown>
     heroGraphicSize: opts.heroGraphicSize ?? (isFmgs ? 96 : undefined),
     heroGraphicPosition:
       opts.heroGraphicPosition ?? (isFmgs ? "right" : undefined),
+    heroPaddingTop: opts.heroPaddingTop,
+    proofWidth: opts.proofWidth,
+    sectionGap: opts.sectionGap,
+    canvasWidth: opts.canvasWidth ?? schema.canvas?.width,
+    canvasHeight: opts.canvasHeight ?? schema.canvas?.height,
+    canvasFit: opts.canvasFit,
     headerAlign:
       (hero && hero.type === "hero" ? hero.align : undefined) ??
       opts.headerAlign ??

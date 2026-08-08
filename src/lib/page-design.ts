@@ -92,6 +92,12 @@ export type HeaderAlign = "center" | "left";
 export type HeroGraphic = "none" | "golf";
 export type LogoAlign = "center" | "left" | "right";
 export type HeroGraphicPosition = "right" | "left" | "below" | "above";
+/**
+ * fluid  — 기존 반응형 렌더 (기본)
+ * fixed  — 아트보드(canvasWidth×canvasHeight) 비율 고정. 화면이 아트보드보다
+ *          좁으면 캔버스 전체를 같은 비율로 축소해 시안과 동일한 비율을 유지.
+ */
+export type CanvasFit = "fluid" | "fixed";
 
 export type HeadlineSegment = {
   text: string;
@@ -131,6 +137,18 @@ export type PageDesign = {
   logoAlign?: LogoAlign;
   /** Content column max width in px (e.g. 765) */
   contentMaxWidth?: number;
+  /** Header(hero) top padding in px — default 46 */
+  heroPaddingTop?: number;
+  /** Proof/stats bar max width in px — default 420 */
+  proofWidth?: number;
+  /** Vertical gap between sections in px — default 30 */
+  sectionGap?: number;
+  /** Artboard width in px (schema canvas.width) */
+  canvasWidth?: number;
+  /** Artboard height in px (schema canvas.height) */
+  canvasHeight?: number;
+  /** fluid(default) | fixed — lock rendering to the canvas ratio */
+  canvasFit?: CanvasFit;
   /** Optional display headline (falls back to page.bio first line) */
   headline?: string;
   /** Substring inside headline to accent-color highlight */
@@ -287,6 +305,12 @@ export const BUTTON_HOVER_OPTIONS: Array<{
 
 function asString(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+/** Whole-pixel clamp for optional numeric design fields. */
+function clampNumber(value: unknown, min: number, max: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  return Math.min(max, Math.max(min, Math.floor(value)));
 }
 
 function pickEnum<T extends string>(value: unknown, allowed: Set<T>) {
@@ -494,6 +518,16 @@ export function parsePageDesign(raw: unknown): PageDesign {
     typeof data.contentMaxWidth === "number" && Number.isFinite(data.contentMaxWidth)
       ? Math.min(960, Math.max(320, Math.floor(data.contentMaxWidth)))
       : undefined;
+  const heroPaddingTop = clampNumber(data.heroPaddingTop, 0, 240);
+  const proofWidth = clampNumber(data.proofWidth, 160, 960);
+  const sectionGap = clampNumber(data.sectionGap, 0, 120);
+  const canvasWidth = clampNumber(data.canvasWidth, 320, 1600);
+  const canvasHeight = clampNumber(data.canvasHeight, 320, 4000);
+  const canvasFitRaw = asString(data.canvasFit);
+  const canvasFit: CanvasFit | undefined =
+    canvasFitRaw === "fixed" || canvasFitRaw === "fluid"
+      ? canvasFitRaw
+      : undefined;
   const logoWidth =
     typeof data.logoWidth === "number" && Number.isFinite(data.logoWidth)
       ? Math.min(480, Math.max(24, Math.floor(data.logoWidth)))
@@ -502,11 +536,8 @@ export function parsePageDesign(raw: unknown): PageDesign {
     typeof data.logoHeight === "number" && Number.isFinite(data.logoHeight)
       ? Math.min(240, Math.max(16, Math.floor(data.logoHeight)))
       : undefined;
-  const heroGraphicSize =
-    typeof data.heroGraphicSize === "number" &&
-    Number.isFinite(data.heroGraphicSize)
-      ? Math.min(240, Math.max(24, Math.floor(data.heroGraphicSize)))
-      : undefined;
+  // Up to 480px so an artboard-scale hero graphic (시안 200px+) survives.
+  const heroGraphicSize = clampNumber(data.heroGraphicSize, 24, 480);
 
   const headlineSegments: HeadlineSegment[] = [];
   if (Array.isArray(data.headlineSegments)) {
@@ -552,6 +583,12 @@ export function parsePageDesign(raw: unknown): PageDesign {
     logoHeight,
     logoAlign,
     contentMaxWidth,
+    heroPaddingTop,
+    proofWidth,
+    sectionGap,
+    canvasWidth,
+    canvasHeight,
+    canvasFit,
     headline: asString(data.headline).slice(0, 160) || undefined,
     headlineHighlight:
       asString(data.headlineHighlight).slice(0, 80) || undefined,
@@ -708,6 +745,12 @@ export function designAttrs(design: PageDesign) {
     logoHeight: design.logoHeight,
     logoAlign: design.logoAlign || "center",
     contentMaxWidth: design.contentMaxWidth,
+    heroPaddingTop: design.heroPaddingTop,
+    proofWidth: design.proofWidth,
+    sectionGap: design.sectionGap,
+    canvasWidth: design.canvasWidth,
+    canvasHeight: design.canvasHeight,
+    canvasFit: design.canvasFit,
     headline: design.headline,
     headlineHighlight: design.headlineHighlight,
     headlineSegments: design.headlineSegments,
